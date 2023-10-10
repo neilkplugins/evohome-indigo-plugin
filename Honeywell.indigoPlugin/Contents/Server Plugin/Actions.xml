@@ -1,0 +1,310 @@
+<?xml version="1.0"?>
+<Actions>
+	<Action id="setpointStatus" deviceFilter="self.HoneywellThermostat" uiPath="Wi-Fi">
+		<Name>Setpoint Status</Name>
+		<CallbackMethod>actionSetpointStatus</CallbackMethod>
+		<ConfigUI>
+			<Field type="menu" id="setting">
+				<Label>Setpoint Status:</Label>
+				<List>
+					<Option value="Scheduled">Scheduled</Option>
+					<Option value="Temporary">Temporary Hold</Option>
+					<Option value="Hold">Permanent Hold</Option>
+				</List>
+			</Field>
+		</ConfigUI>
+	</Action>
+
+	<Action id="zoneSetpoint" deviceFilter="self.HoneywellThermostat" uiPath="Wi-Fi">
+		<Name>Zone Setpoint</Name>
+		<CallbackMethod>actionZoneSetpoint</CallbackMethod>
+		<ConfigUI>
+			<Field type="menu" id="settingType">
+				<Label>Heat/Cool:</Label>
+				<List>
+					<Option value="cool">Cool</Option>
+					<Option value="heat">Heat</Option>
+				</List>
+			</Field>
+			<Field id="setting" type="textfield" defaultValue="75">
+				<Label>Setpoint:</Label>
+			</Field>
+			<Field id="settingNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">	
+				<Label>Enter setpoint.</Label>
+			</Field>
+			<Field id="Timing" type="checkbox" defaultValue="true">
+				<Label>Permanent:</Label>
+			</Field>
+			<Field id="Duration" type="textfield" defaultValue="00:00" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Hold Until:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Set hold time in form HH:MM.  Must be entered in increments of 15 minutes. (00:00-23:45)</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>	
+
+	<Action id="sep4" uiPath="Wi-Fi"/>
+	<Action id="dumpJSON" deviceFilter="self.HoneywellThermostat" uiPath="Wi-Fi">
+		<Name>Dump JSON</Name>
+		<CallbackMethod>dumpJSON</CallbackMethod>
+	</Action>	
+	<Action id="sep1"/>
+	<Action id="evohome_systemModeSet" deviceFilter="self.evohomeController" uiPath="evohome">
+		<Name>System Mode</Name>
+		<CallbackMethod>evohome_actionSystemModeSet</CallbackMethod>
+		<ConfigUI>
+			<Field id="setting" type="menu" defaultValue="Auto1">
+				<Label>System Mode:</Label>
+				<List>
+					<Option value="Auto1">Auto</Option>
+					<Option value="AutoWithEco">Auto with Eco</Option>
+					<Option value="AutoWithReset">Auto with Reset</Option>
+					<Option value="Away">Away</Option>
+					<Option value="DayOff">Day Off</Option>
+					<Option value="HeatingOff">Heating Off</Option>
+					<Option value="Custom">Custom</Option>
+				</List>
+			</Field>
+			<Field id="Timing" type="checkbox" defaultValue="true" visibleBindingId="setting" visibleBindingValue="AutoWithEco, Away, DayOff, Custom">
+				<Label>Permanent:</Label>
+			</Field>
+			<Field id="Duration" type="textfield" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Duration:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>For 'Auto with Eco' mode, set duration in hours from 1-24.  For all other modes, set duration in days from 1-99.</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note5" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note6" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>
+	<Action id="sep2" uiPath="evohome" />
+	<Action id="evohome_zoneSetpointMode" deviceFilter="self.evohomeZone" uiPath="evohome">
+		<Name>Zone Setpoint Mode</Name>
+		<CallbackMethod>evohome_actionZoneSetpointMode</CallbackMethod>
+		<ConfigUI>
+			<Field id="setting" type="menu" defaultValue="FollowSchedule">
+				<Label>Setpoint Mode:</Label>
+				<List>
+					<Option value="FollowSchedule">Follow Schedule</Option>
+					<Option value="PermanentOverride">Permanent Override</Option>
+					<Option value="TemporaryOverride">Temporary Override</Option>
+				</List>
+			</Field>
+			<Field id="Duration" type="textfield" defaultValue="10" visibleBindingId="setting" visibleBindingValue="TemporaryOverride">
+				<Label>Duration:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="setting" visibleBindingValue="TemporaryOverride">
+				<Label>Set duration in minutes from 10-1440.  Increment must be entered in intervals of 10.</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>
+	<Action id="evohome_zoneSetpoint" deviceFilter="self.evohomeZone" uiPath="evohome">
+		<Name>Zone Setpoint</Name>
+		<CallbackMethod>evohome_actionZoneSetpoint</CallbackMethod>
+		<ConfigUI>
+			<Field id="setting" type="textfield" defaultValue="20.0">
+				<Label>Setpoint:</Label>
+			</Field>
+			<Field id="settingNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">	
+				<Label>Enter setpoint.  Setpoint must be entered in intervals of 0.5.</Label>
+			</Field>
+			<Field id="Timing" type="checkbox" defaultValue="true">
+				<Label>Permanent:</Label>
+			</Field>
+			<Field id="Duration" type="textfield" defaultValue="10" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Duration:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Set duration in minutes from 10-1440.  Increment must be entered in intervals of 10.</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>	
+	<Action id="evohome_zoneSetpointIncrease" deviceFilter="self.evohomeZone" uiPath="evohome">
+		<Name>Increase Zone Setpoint</Name>
+		<CallbackMethod>evohome_actionZoneSetpointIncrease</CallbackMethod>
+		<ConfigUI>
+			<Field id="setting" type="textfield" defaultValue="0.5">
+				<Label>Increment:</Label>
+			</Field>
+			<Field id="settingNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">	
+				<Label>Enter number of degrees to increase setpoint.  Increment must be entered in intervals of 0.5.</Label>
+			</Field>
+			<Field id="Timing" type="checkbox" defaultValue="true">
+				<Label>Permanent:</Label>
+			</Field>
+			<Field id="Duration" type="textfield" defaultValue="10" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Duration:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Set duration in minutes from 10-1440.  Increment must be entered in intervals of 10.</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>
+	<Action id="evohome_zoneSetpointDecrease" deviceFilter="self.evohomeZone" uiPath="evohome">
+		<Name>Decrease Zone Setpoint</Name>
+		<CallbackMethod>evohome_actionZoneSetpointDecrease</CallbackMethod>
+		<ConfigUI>
+			<Field id="setting" type="textfield" defaultValue="0.5">
+				<Label>Decrement:</Label>
+			</Field>
+			<Field id="settingNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">	
+				<Label>Enter number of degrees to decrease setpoint.  Decrement must be entered in intervals of 0.5.</Label>
+			</Field>
+			<Field id="Timing" type="checkbox" defaultValue="true">
+				<Label>Permanent:</Label>
+			</Field>
+			<Field id="Duration" type="textfield" defaultValue="10" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Duration:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Set duration in minutes from 10-1440.  Increment must be entered in intervals of 10.</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>
+	<Action id="sep3" uiPath="evohome" />
+	<Action id="evohome_dhwMode" deviceFilter="self.evohomeDHW" uiPath="evohome">
+		<Name>Domestic Hot Water Mode</Name>
+		<CallbackMethod>evohome_actionDHWMode</CallbackMethod>
+		<ConfigUI>
+			<Field id="setting" type="menu" defaultValue="FollowSchedule">
+				<Label>Domestic Hot Water Mode:</Label>
+				<List>
+					<Option value="FollowSchedule">Follow Schedule</Option>
+					<Option value="PermanentOverride">Permanent Override</Option>
+					<Option value="TemporaryOverride">Temporary Override</Option>
+				</List>
+			</Field>
+			<Field id="Duration" type="textfield" defaultValue="10" visibleBindingId="setting" visibleBindingValue="TemporaryOverride">
+				<Label>Duration:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="setting" visibleBindingValue="TemporaryOverride">
+				<Label>Set duration in minutes from 10-1440.  Increment must be entered in intervals of 10.</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>
+	<Action id="evohome_dhwState" deviceFilter="self.evohomeDHW" uiPath="evohome">
+		<Name>Domestic Hot Water State</Name>
+		<CallbackMethod>evohome_actionDHWState</CallbackMethod>
+		<ConfigUI>
+			<Field id="setting" type="menu" defaultValue="On">
+				<Label>Domestic Hot Water State:</Label>
+				<List>
+					<Option value="On">On</Option>
+					<Option value="Off">Off</Option>
+				</List>
+			</Field>
+			<Field id="Timing" type="checkbox" defaultValue="true">
+				<Label>Permanent:</Label>
+			</Field>
+			<Field id="Duration" type="textfield" defaultValue="10" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Duration:</Label>
+			</Field>
+			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="Timing" visibleBindingValue="false">
+				<Label>Set duration in minutes from 10-1440.  Increment must be entered in intervals of 10.</Label>
+			</Field>
+			<Field id="note1" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note2" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note3" type="label">
+				<Label> </Label>
+			</Field>
+			<Field id="note4" type="label">
+				<Label> </Label>
+			</Field>
+		</ConfigUI>
+	</Action>
+</Actions>
+

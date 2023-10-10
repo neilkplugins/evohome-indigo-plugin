@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<MenuItems>
+
+	<MenuItem id="sep1" />
+	<MenuItem id="menu1">
+		<Name>Log evohome TCC Device IDs</Name>
+		<CallbackMethod>dumpEvohomeTCC</CallbackMethod>
+	</MenuItem>
+	<MenuItem id="menu2">
+		<Name>Create evohome Devices</Name>
+		<CallbackMethod>createEvohomeDevices</CallbackMethod>
+	</MenuItem>
+	<MenuItem id="menu3">
+		<Name>Initialize evohome Devices</Name>
+		<CallbackMethod>initEvohomeDevices</CallbackMethod>
+	</MenuItem>
+
+	<MenuItem id="sep2" />
+	<MenuItem id="menu4">
+		<Name>Check for Updates</Name>
+		<CallbackMethod>checkForUpdates</CallbackMethod>
+	</MenuItem>
+</MenuItems>

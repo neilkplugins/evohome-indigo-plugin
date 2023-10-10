@@ -1,0 +1,306 @@
+<?xml version="1.0"?>
+<Devices>
+	<Device type="thermostat" id="HoneywellThermostat">
+		<Name>Wi-Fi 6580/8580/9580/9590</Name>
+		<ConfigUI>
+			<Field id="address" type="textfield">
+				<Label>Device ID:</Label>
+			</Field>
+			<Field id="NumHumidityInputs" hidden="true" type="textfield" defaultValue="1"></Field>
+			<Field id="ShowCoolHeatEquipmentStateUI" hidden="true" type="checkbox" defaultValue="true"></Field>
+		</ConfigUI>
+		<States>
+			<State id="macID">
+				<ValueType>String</ValueType>
+				<TriggerLabel>macID</TriggerLabel>
+				<ControlPageLabel>macID</ControlPageLabel>
+			</State>
+			<State id="name">
+				<ValueType>String</ValueType>
+				<TriggerLabel>name</TriggerLabel>
+				<ControlPageLabel>name</ControlPageLabel>
+			</State>
+			<State id="thermostatModelType">
+				<ValueType>String</ValueType>
+				<TriggerLabel>thermostatModelType</TriggerLabel>
+				<ControlPageLabel>thermostatModelType</ControlPageLabel>
+			</State>
+			<State id="thermostatVersion">
+				<ValueType>String</ValueType>
+				<TriggerLabel>thermostatVersion</TriggerLabel>
+				<ControlPageLabel>thermostatVersion</ControlPageLabel>
+			</State>
+			<State id="thermostatAllowedModes">
+				<ValueType>String</ValueType>
+				<TriggerLabel>thermostatAllowedModes</TriggerLabel>
+				<ControlPageLabel>thermostatAllowedModes</ControlPageLabel>
+			</State>
+			<State id="thermostatMode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>thermostatMode</TriggerLabel>
+				<ControlPageLabel>thermostatMode</ControlPageLabel>
+			</State>
+			<State id="setpointStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>setpointStatus</TriggerLabel>
+				<ControlPageLabel>setpointStatus</ControlPageLabel>
+			</State>
+			<State id="nextTime">
+				<ValueType>String</ValueType>
+				<TriggerLabel>nextTime</TriggerLabel>
+				<ControlPageLabel>nextTime</ControlPageLabel>
+			</State>			
+			<State id="fanAllowedModes">
+				<ValueType>String</ValueType>
+				<TriggerLabel>fanAllowedModes</TriggerLabel>
+				<ControlPageLabel>fanAllowedModes</ControlPageLabel>
+			</State>
+			<State id="fanMode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>fanMode</TriggerLabel>
+				<ControlPageLabel>fanMode</ControlPageLabel>
+			</State>
+			<State id="fanRunning">
+				<ValueType boolType="TrueFalse">Boolean</ValueType>
+				<TriggerLabel>fanRunning</TriggerLabel>
+				<ControlPageLabel>fanRunning</ControlPageLabel>
+			</State>
+			<State id="indoorHumidityStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>indoorHumidityStatus</TriggerLabel>
+				<ControlPageLabel>indoorHumidityStatus</ControlPageLabel>
+			</State>
+			<State id="indoorTemperatureStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>indoorTemperatureStatus</TriggerLabel>
+				<ControlPageLabel>indoorTemperatureStatus</ControlPageLabel>
+			</State>
+
+			<State id="maxCoolSetpoint">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>maxCoolSetpoint</TriggerLabel>
+				<ControlPageLabel>maxCoolSetpoint</ControlPageLabel>
+			</State>
+			<State id="maxHeatSetpoint">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>maxHeatSetpoint</TriggerLabel>
+				<ControlPageLabel>maxHeatSetpoint</ControlPageLabel>
+			</State>
+			<State id="minCoolSetpoint">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>minCoolSetpoint</TriggerLabel>
+				<ControlPageLabel>minCoolSetpoint</ControlPageLabel>
+			</State>
+			<State id="minHeatSetpoint">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>minHeatSetpoint</TriggerLabel>
+				<ControlPageLabel>minHeatSetpoint</ControlPageLabel>
+			</State>
+			<State id="outdoorHumidity">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>outdoorHumidity</TriggerLabel>
+				<ControlPageLabel>outdoorHumidity</ControlPageLabel>
+			</State>
+			<State id="outdoorHumidityStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>outdoorHumidityStatus</TriggerLabel>
+				<ControlPageLabel>outdoorHumidityStatus</ControlPageLabel>
+			</State>
+			<State id="outdoorHumidityAvailable">
+				<ValueType boolType="TrueFalse">Boolean</ValueType>
+				<TriggerLabel>outdoorHumidityAvailable</TriggerLabel>
+				<ControlPageLabel>outdoorHumidityAvailable</ControlPageLabel>
+			</State>
+			<State id="outdoorTemperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>outdoorTemperature</TriggerLabel>
+				<ControlPageLabel>outdoorTemperature</ControlPageLabel>
+			</State>
+			<State id="outdoorTemperatureStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>outdoorTemperatureStatus</TriggerLabel>
+				<ControlPageLabel>outdoorTemperatureStatus</ControlPageLabel>
+			</State>
+			<State id="outdoorTemperatureAvailable">
+				<ValueType boolType="TrueFalse">Boolean</ValueType>
+				<TriggerLabel>outdoorTemperatureAvailable</TriggerLabel>
+				<ControlPageLabel>outdoorTemperatureAvailable</ControlPageLabel>
+			</State>
+			<State id="scheduleCapable">
+				<ValueType boolType="TrueFalse">Boolean</ValueType>
+				<TriggerLabel>scheduleCapable</TriggerLabel>
+				<ControlPageLabel>scheduleCapable</ControlPageLabel>
+			</State>
+			<State id="scheduleCoolSp">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>scheduleCoolSp</TriggerLabel>
+				<ControlPageLabel>scheduleCoolSp</ControlPageLabel>
+			</State>
+			<State id="scheduleHeatSp">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>scheduleHeatSp</TriggerLabel>
+				<ControlPageLabel>scheduleHeatSp</ControlPageLabel>
+			</State>
+			<State id="lastUpdate" hidden="true">
+				<ValueType>String</ValueType>
+				<TriggerLabel>lastUpdate</TriggerLabel>
+				<ControlPageLabel>lastUpdate</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+	<Device type="custom" id="evohomeLocation">
+		<Name>evohome Location</Name>
+		<ConfigUI>
+			<Field id="address" type="textfield">
+				<Label>Location ID:</Label>
+			</Field>
+		</ConfigUI>
+		<States>
+			<State id="name">
+				<ValueType>String</ValueType>
+				<TriggerLabel>name</TriggerLabel>
+				<ControlPageLabel>name</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+	<Device type="custom" id="evohomeController">
+		<Name>evohome Controller</Name>
+		<ConfigUI>
+			<Field id="address" type="textfield">
+				<Label>Device ID:</Label>
+			</Field>
+		</ConfigUI>
+		<UiDisplayStateId>systemMode</UiDisplayStateId>
+		<States>
+			<State id="modelType">
+				<ValueType>String</ValueType>
+				<TriggerLabel>modelType</TriggerLabel>
+				<ControlPageLabel>modelType</ControlPageLabel>
+			</State>
+			<State id="systemMode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>systemMode</TriggerLabel>
+				<ControlPageLabel>systemMode</ControlPageLabel>
+			</State>
+			<State id="systemModePermanent">
+				<ValueType>Boolean</ValueType>
+				<TriggerLabel>systemModePermanent</TriggerLabel>
+				<ControlPageLabel>systemModePermanent</ControlPageLabel>
+			</State>
+			<State id="systemModeUntil">
+				<ValueType>String</ValueType>
+				<TriggerLabel>systemModeUntil</TriggerLabel>
+				<ControlPageLabel>systemModeUntil</ControlPageLabel>
+			</State>
+			<State id="activeFaults">
+				<ValueType>String</ValueType>
+				<TriggerLabel>activeFaults</TriggerLabel>
+				<ControlPageLabel>activeFaults</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+	<Device type="thermostat" id="evohomeDHW">
+		<Name>evohome Domestic Hot Water</Name>
+		<ConfigUI>
+			<Field id="address" type="textfield">
+				<Label>Device ID:</Label>
+			</Field>
+			<Field id="NumHumidityInputs" hidden="true" type="textfield" defaultValue="0"></Field>
+			<Field id="SupportsCoolSetpoint" hidden="true" type="textfield" defaultValue="False"></Field>
+			<Field id="SupportsHvacFanMode" hidden="true" type="textfield" defaultValue="False"></Field>
+			<Field id="ShowCoolHeatEquipmentStateUI" hidden="true" type="checkbox" defaultValue="true"></Field>
+		</ConfigUI>
+		<States>
+			<State id="name">
+				<ValueType>String</ValueType>
+				<TriggerLabel>name</TriggerLabel>
+				<ControlPageLabel>name</ControlPageLabel>
+			</State>
+			<State id="modelType">
+				<ValueType>String</ValueType>
+				<TriggerLabel>modelType</TriggerLabel>
+				<ControlPageLabel>modelType</ControlPageLabel>
+			</State>
+			<State id="zoneType">
+				<ValueType>String</ValueType>
+				<TriggerLabel>zoneType</TriggerLabel>
+				<ControlPageLabel>zoneType</ControlPageLabel>
+			</State>
+			<State id="zoneState">
+				<ValueType>String</ValueType>
+				<TriggerLabel>zoneState</TriggerLabel>
+				<ControlPageLabel>zoneState</ControlPageLabel>
+			</State>
+			<State id="zoneMode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>zoneMode</TriggerLabel>
+				<ControlPageLabel>zoneMode</ControlPageLabel>
+			</State>
+			<State id="zoneModeUntil">
+				<ValueType>String</ValueType>
+				<TriggerLabel>zoneModeUntil</TriggerLabel>
+				<ControlPageLabel>zoneModeUntil</ControlPageLabel>
+			</State>
+			<State id="activeFaults">
+				<ValueType>String</ValueType>
+				<TriggerLabel>activeFaults</TriggerLabel>
+				<ControlPageLabel>activeFaults</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+	<Device type="thermostat" id="evohomeZone">
+		<Name>evohome Heating Zone</Name>
+		<ConfigUI>
+			<Field id="address" type="textfield">
+				<Label>Device ID:</Label>
+			</Field>
+			<Field id="NumHumidityInputs" hidden="true" type="textfield" defaultValue="0"></Field>
+			<Field id="SupportsCoolSetpoint" hidden="true" type="textfield" defaultValue="False"></Field>
+			<Field id="SupportsHeatSetpoint" hidden="true" type="textfield" defaultValue="False"></Field>			
+			<Field id="SupportsHvacFanMode" hidden="true" type="textfield" defaultValue="False"></Field>
+			<Field id="ShowCoolHeatEquipmentStateUI" hidden="true" type="checkbox" defaultValue="true"></Field>
+		</ConfigUI>
+		<States>
+			<State id="name">
+				<ValueType>String</ValueType>
+				<TriggerLabel>name</TriggerLabel>
+				<ControlPageLabel>name</ControlPageLabel>
+			</State>
+			<State id="modelType">
+				<ValueType>String</ValueType>
+				<TriggerLabel>modelType</TriggerLabel>
+				<ControlPageLabel>modelType</ControlPageLabel>
+			</State>
+			<State id="zoneType">
+				<ValueType>String</ValueType>
+				<TriggerLabel>zoneType</TriggerLabel>
+				<ControlPageLabel>zoneType</ControlPageLabel>
+			</State>
+			<State id="setpointMode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>setpointMode</TriggerLabel>
+				<ControlPageLabel>setpointMode</ControlPageLabel>
+			</State>
+			<State id="setpointUntil">
+				<ValueType>String</ValueType>
+				<TriggerLabel>setpointUntil</TriggerLabel>
+				<ControlPageLabel>setpointUntil</ControlPageLabel>
+			</State>			
+			<State id="maxHeatSetpoint">
+				<ValueType>String</ValueType>
+				<TriggerLabel>maxHeatSetpoint</TriggerLabel>
+				<ControlPageLabel>maxHeatSetpoint</ControlPageLabel>
+			</State>
+			<State id="minHeatSetpoint">
+				<ValueType>String</ValueType>
+				<TriggerLabel>minHeatSetpoint</TriggerLabel>
+				<ControlPageLabel>minHeatSetpoint</ControlPageLabel>
+			</State>
+			<State id="activeFaults">
+				<ValueType>String</ValueType>
+				<TriggerLabel>activeFaults</TriggerLabel>
+				<ControlPageLabel>activeFaults</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+</Devices>

@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<PluginConfig>
+	<Field id="infoLabel" type="label">
+		<Label>Honeywell Total Connect Comfort Plugin</Label>
+	</Field>
+	<Field type="checkbox" id="Wi-Fi" tooltip="Honeywell TCC Wi-Fi Account?">
+		<Label>Honeywell Wi-Fi Thermostat:</Label>
+	</Field>
+	<Field type="textfield" id="UserID" tooltip="Honeywell User ID" visibleBindingId="Wi-Fi" visibleBindingValue="true">
+		<Label>Honeywell User ID:</Label>
+	</Field>
+	<Field type="textfield" id="Password" secure="true" tooltip="Honeywell Password" visibleBindingId="Wi-Fi" visibleBindingValue="true">
+		<Label>Honeywell Password:</Label>
+	</Field>
+	<Field type="menu" id="UIChanges" defaultValue="Temporary" tooltip="Indigo UI Setpoint Changes" visibleBindingId="Wi-Fi" visibleBindingValue="true">
+		<Label>UI Setpoint Changes</Label>
+		<List>
+			<Option value="Hold">Permanent</Option>
+			<Option value="Temporary">Temporary</Option>
+		</List>
+	</Field>
+	<Field id="simpleSeparator1" type="separator"/>	
+	<Field type="checkbox" id="evohome" tooltip="Honeywell TCC evohome Account?">
+		<Label>Honeywell evohome Thermostat:</Label>
+	</Field>
+	<Field type="textfield" id="evohome_UserID" tooltip="Honeywell User ID" visibleBindingId="evohome" visibleBindingValue="true">
+		<Label>Honeywell User ID:</Label>
+	</Field>
+	<Field type="textfield" id="evohome_Password" secure="true" tooltip="Honeywell Password" visibleBindingId="evohome" visibleBindingValue="true">
+		<Label>Honeywell Password:</Label>
+	</Field>
+	<Field id="simpleSeparator2" type="separator"/>	
+	<Field type="textfield" id="interval" tooltip="Polling Internval" defaultValue="30">
+		<Label>Polling Interval:</Label>
+	</Field>
+	<Field type="textfield" id="maxErrors" tooltip="Errors Before Re-authenticating" defaultValue="5">
+		<Label>Max Errors:</Label>
+	</Field>
+	<Field id="simpleSeparator3" type="separator"/>	
+	<Field type="menu" id="TCCServer" defaultValue="NA" tooltip="Total Connect Control Server">
+		<Label>TCC Server:</Label>
+		<List>
+			<Option value="NA">TCC North America</Option>
+			<Option value="EU">TCC Europe</Option>
+			<Option value="QA">TCC North America Test Environment</Option>
+		</List>
+	</Field>
+	<Field id="simpleSeparator4" type="separator"/>
+	<Field id="updaterEmail" type="textfield">
+		<Label>Email:</Label>
+	</Field>
+
+	<!-- Optionally a checkbox can also be used. -->
+
+	<Field id="simpleSeparator5" type="separator"/>
+
+	<Field type="checkbox" id="showDebugInLog"
+		tooltip="This enables lots of debugging messages in the Indigo Event Log.">
+		<Label>Enable debugging:</Label>
+		<Description>(use carefully)</Description>
+	</Field>
+</PluginConfig>
