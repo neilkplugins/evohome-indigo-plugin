@@ -1,66 +1,7 @@
 <?xml version="1.0"?>
 <Actions>
-	<Action id="setpointStatus" deviceFilter="self.HoneywellThermostat" uiPath="Wi-Fi">
-		<Name>Setpoint Status</Name>
-		<CallbackMethod>actionSetpointStatus</CallbackMethod>
-		<ConfigUI>
-			<Field type="menu" id="setting">
-				<Label>Setpoint Status:</Label>
-				<List>
-					<Option value="Scheduled">Scheduled</Option>
-					<Option value="Temporary">Temporary Hold</Option>
-					<Option value="Hold">Permanent Hold</Option>
-				</List>
-			</Field>
-		</ConfigUI>
-	</Action>
 
-	<Action id="zoneSetpoint" deviceFilter="self.HoneywellThermostat" uiPath="Wi-Fi">
-		<Name>Zone Setpoint</Name>
-		<CallbackMethod>actionZoneSetpoint</CallbackMethod>
-		<ConfigUI>
-			<Field type="menu" id="settingType">
-				<Label>Heat/Cool:</Label>
-				<List>
-					<Option value="cool">Cool</Option>
-					<Option value="heat">Heat</Option>
-				</List>
-			</Field>
-			<Field id="setting" type="textfield" defaultValue="75">
-				<Label>Setpoint:</Label>
-			</Field>
-			<Field id="settingNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">	
-				<Label>Enter setpoint.</Label>
-			</Field>
-			<Field id="Timing" type="checkbox" defaultValue="true">
-				<Label>Permanent:</Label>
-			</Field>
-			<Field id="Duration" type="textfield" defaultValue="00:00" visibleBindingId="Timing" visibleBindingValue="false">
-				<Label>Hold Until:</Label>
-			</Field>
-			<Field id="DurationNote" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true" visibleBindingId="Timing" visibleBindingValue="false">
-				<Label>Set hold time in form HH:MM.  Must be entered in increments of 15 minutes. (00:00-23:45)</Label>
-			</Field>
-			<Field id="note1" type="label">
-				<Label> </Label>
-			</Field>
-			<Field id="note2" type="label">
-				<Label> </Label>
-			</Field>
-			<Field id="note3" type="label">
-				<Label> </Label>
-			</Field>
-			<Field id="note4" type="label">
-				<Label> </Label>
-			</Field>
-		</ConfigUI>
-	</Action>	
 
-	<Action id="sep4" uiPath="Wi-Fi"/>
-	<Action id="dumpJSON" deviceFilter="self.HoneywellThermostat" uiPath="Wi-Fi">
-		<Name>Dump JSON</Name>
-		<CallbackMethod>dumpJSON</CallbackMethod>
-	</Action>	
 	<Action id="sep1"/>
 	<Action id="evohome_systemModeSet" deviceFilter="self.evohomeController" uiPath="evohome">
 		<Name>System Mode</Name>

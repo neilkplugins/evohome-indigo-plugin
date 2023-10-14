@@ -1,9 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 ####################
-# Copyright (c) 2014-2016, SSI. All rights reserved.
+# Based on Nlagaros Honeywell plugin
 
 import indigo
+from evohomeclient2 import EvohomeClient
 
 try:
 	import json
@@ -28,16 +29,17 @@ class Honeywell(object):
 	def __init__(self, plugin):
 		self.plugin = plugin
 		self.needToGetPluginPrefs = True
-		self.WiFi = False
-		self.UserID = None
-		self.Password = None
+		#self.WiFi = False
+		#self.UserID = None
+		#self.Password = None
 		self.UIChanges = None
 		self.WiFiStatus = False
 		self.timer_refresh = None 	# timestamp of last token refresh
-		self.timer_events = None 	# timestamp of last event poll 
+		self.timer_events = None 	# timestamp of last event poll
 		self.timer_full = None 		# timestamp of last device fetch
 		self.timer_lasttry = None 	# timestamp of last token attempt
 		self.token_refresh = None
+		self.token_life = 120
 		self.evohome = False
 		self.evohome_UserID = None
 		self.evohome_Password = None
@@ -57,7 +59,6 @@ class Honeywell(object):
 		self.HQ = {}
 		self.interval = None
 		self.maxErrors = None
-		self.access_token='5B26C218-B798-46E9-8C96-0E8E5E7C91B3'
 
 	def __del__(self):
 		pass
@@ -68,23 +69,13 @@ class Honeywell(object):
 		logging.getLogger("requests").setLevel(logging.WARNING)
 
 		self.closedPrefsConfigUi(None, None)
-		#self.plugin.updater.checkVersionPoll()
-
-		#if self.WiFi == True:
-		#	self.start_WiFi()
-		#if self.evohome == True:
-		#	self.start_evohome()
+		self.start_evohome()
 
 	def deviceStartComm(self, dev):
 		self.plugin.debugLog("Starting device: %s" % dev.name)
 		if dev.id not in self.deviceList:
 			self.deviceList.append(dev.id)
 			dev.stateListOrDisplayStateIdChanged()
-
-		if self.WiFi == True and dev.deviceTypeId == 'HoneywellThermostat':
-			self.plugin.debugLog("[%s] Thermostat: %s, Enabled: %s" % (time.asctime(), dev.name, dev.enabled))
-			self.initDevice (dev)
-			self.getDevice (dev)
 
 	def deviceStopComm(self, device):
 		self.plugin.debugLog("Stopping device: %s" % device.name)
@@ -96,24 +87,26 @@ class Honeywell(object):
 		HoneywellPlug.restart (waitUntilDone = True)
 		exit()
 
-
-
 	def start_evohome(self):
-		# url = "mytotalconnectcomfort.com/WebApi/api/Session"
-		#
-		# payload = 'username='+self.evohome_UserID+'&password='+self.evohome_Password+'&ApplicationId=91db1612-73fd-4500-91b2-e63b069b185c'
-		# headers = {
-		# 	'Content-type': 'application/x-www-form-urlencoded'
-		# }
-		#
-		# response = requests.request("POST", url, headers=headers, data=payload)
-		# indigo.server.log(response)
-		try:
-			self.evohomeStatus = True
-			#self.evohomeStatus = self.myEvohomeTCC.getTokens (self.plugin.pluginPrefs["TCCServer"], self.evohome_UserID, self.evohome_Password, "evohome")
-		except:
-			self.evohomeStatus = False
 
+		self.plugin.debugLog("Starting Evohome......")
+
+		try:
+			# client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'])
+
+			client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'], access_token_expires=datetime.strptime(self.plugin.pluginPrefs['access_token_expires'],"%Y-%m-%d %H:%M:%S.%f"))
+		except Exception as error:
+				self.evohomeStatus = False
+				self.plugin.errorLog("[%s] Cannot read evohome TCC data " % time.asctime())
+				self.plugin.debugLog(str(error))
+				return
+		self.plugin.debugLog("[%s] when token expires." % client.access_token_expires)
+
+		self.plugin.pluginPrefs['refresh_token']=client.refresh_token
+		self.plugin.pluginPrefs['access_token']=client.access_token
+		self.plugin.pluginPrefs['access_token_expires']=str(client.access_token_expires)
+		indigo.server.log("[%s] Authenticated to Evohome API." % time.asctime())
+		self.evohomeStatus = True
 		self.evohome_timer_lasttry = time.time()
 
 		if self.evohomeStatus == True:
@@ -123,8 +116,8 @@ class Honeywell(object):
 			self.evohome_initDevice ()
 			self.evohome_get_all ()
 		else:
-			self.plugin.errorLog("[%s] Error: Cannot authenticate to TCC EMEA API.  Retrying in 60..." % time.asctime())
-			
+			self.plugin.errorLog("[%s] Error: Cannot authenticate to Evohome API.  Retrying in 60..." % time.asctime())
+
 
 	######################################################################################
 	# Concurrent Thread Start
@@ -135,27 +128,26 @@ class Honeywell(object):
 
 
 
-			# if self.evohome == True:
-			# 	#if self.c == True:
-			# 	if True == True:
-			# 		if (time.time() - self.evohome_timer_full) > int(self.interval):
-			# 			self.evohome_get_all()
-			# 			self.evohome_timer_full = time.time()
-			# 		# refresh token
-			# 		if (time.time() - self.evohome_timer_refresh) > (self.myEvohomeTCC.token_life - 120):
-			# 			self.evohome_token_refresh = self.myEvohomeTCC.refreshTokens (self.plugin.pluginPrefs["TCCServer"])
-			# 			if self.evohome_token_refresh:
-			# 				self.evohome_timer_refresh = time.time()
-			# 				self.plugin.debugLog("[%s] Evohome Token Refresh" % time.asctime())
-			# 			else:
-			# 				self.evohome_errorCount = self.evohome_errorCount + 1
-			# 				self.plugin.errorLog("[%s] Error: Cannot refresh authentication token" % time.asctime())
-			# 				self.evohomeStatus = False
-			# 				self.evohome_timer_lasttry = time.time()
-			# 	if (time.time() - self.evohome_timer_lasttry) > errorTimer and (self.evohomeStatus == False or self.evohome_errorCount >= int(self.maxErrors)):
-			self.start_evohome()
-
-			self.plugin.sleep(1)
+			if self.evohome == True:
+				#if self.c == True:
+				if True == True:
+					if (time.time() - self.evohome_timer_full) > int(self.interval):
+						self.evohome_get_all()
+						self.evohome_timer_full = time.time()
+					# refresh token
+					if (time.time() - self.evohome_timer_refresh) > (self.token_life - 120):
+						self.evohome_token_refresh = self.refresh_evohome()
+						if self.evohome_token_refresh:
+							self.evohome_timer_refresh = time.time()
+							self.plugin.debugLog("[%s] Evohome Token Refresh" % time.asctime())
+						else:
+							self.evohome_errorCount = self.evohome_errorCount + 1
+							self.plugin.errorLog("[%s] Error: Cannot refresh authentication token" % time.asctime())
+							self.evohomeStatus = False
+							self.evohome_timer_lasttry = time.time()
+				if (time.time() - self.evohome_timer_lasttry) > errorTimer and (self.evohomeStatus == False or self.evohome_errorCount >= int(self.maxErrors)):
+					self.start_evohome()
+				self.plugin.sleep(1)
 
 	def initDevice(self, dev):
 		indigo.server.log("Initializing thermostat device: %s" % dev.name)
@@ -189,70 +181,81 @@ class Honeywell(object):
 
 		self.HQ[dev.id] = {'SetPoint':0, 'OperationMode':0, 'FanMode':0}
 
+	def refresh_evohome(self):
+		try:
+			url = "https://mytotalconnectcomfort.com/WebApi/api/Session"
+			payload = 'username=' + self.plugin.pluginPrefs['evohome_UserID'] + '&password=' + self.plugin.pluginPrefs[
+				'evohome_Password'] + '&ApplicationId=91db1612-73fd-4500-91b2-e63b069b185c'
+			headers = {
+				'Content-type': 'application/x-www-form-urlencoded'
+			}
+			response = requests.request("POST", url, headers=headers, data=payload)
+			self.plugin.debugLog(response.text)
+
+			if response.status_code != 200:
+				self.plugin.errorLog("[%s] Cannot read evohome TCC data in def" % time.asctime())
+				return False
+			content = json.loads(response.content)
+			self.access_token = content["sessionId"]
+			self.plugin.debugLog("Got session ID" + content["sessionId"])
+			self.userID = str(content["userInfo"]['userID'])
+		except:
+			return False
+		return True
+
+
 	def evohome_initDevice(self):
 		for dev in indigo.devices.iter("self.evohomeLocation"):
 			if dev.enabled:
-				url = self.TCCServer + 'WebAPI/emea/api/v1/location/' + dev.address + '/installationInfo?includeTemperatureControlSystems=True'
+				indigo.server.log("Initializing thermostat device: %s" % dev.name)
+				self.evohome_initLocation(dev)
 
-				headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.access_token}
-				try:
-					response = requests.get(url, headers=headers)
-				except requests.exceptions.ConnectionError as e:
-					self.plugin.errorLog("[%s] Connection Error for: %s" % (time.asctime(), dev.name))
-					return False
-				if response.status_code == 200:
-					indigo.server.log("Initializing thermostat device: %s" % dev.name)
-					content = json.loads (response.content)
-					self.evohome_initLocation(dev, content)
-				else:
-					self.plugin.errorLog("[%s] Cannot read device data for: %s" % (time.asctime(), dev.name))
-					return False
 
-	def evohome_initLocation(self, dev, content):
-		self.updateStateOnServer(dev, "name", content["locationInfo"]["name"])
-		for gateway in content["gateways"]:
-			for temperatureControlSystem in gateway["temperatureControlSystems"]:
-				found = False
-				for dev in indigo.devices.iter("self.evohomeController"):
-					if dev.address == temperatureControlSystem["systemId"]:
-						found = True
-						try: self.updateStateOnServer(dev, "modelType", temperatureControlSystem["modelType"])
-						except: self.de (dev, "modelType")
-						break
-				if found == False:
-					self.plugin.errorLog("[%s] Missing evohome Controller: [%s]" % (time.asctime(), temperatureControlSystem["systemId"]))
+	def evohome_initLocation(self, dev):
+		content = self.get_evohome_data()
+		self.updateStateOnServer(dev, "name", content.installation_info[0]['locationInfo']['name'])
+		#for temperatureControlSystem in gateway["temperatureControlSystems"]:
+		found = False
+		for dev in indigo.devices.iter("self.evohomeController"):
+			if dev.address == str(content.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']):
+				found = True
+				try: self.updateStateOnServer(dev, "modelType", content.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['modelType'])
+				except: self.de (dev, "modelType")
+				break
+		if found == False:
+			self.plugin.errorLog("[%s] Missing evohome Controller: [%s]" % (time.asctime(), str(content.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId'])))
 
-				if "dhw" in temperatureControlSystem:
-					found = False
-					for dev in indigo.devices.iter("self.evohomeDHW"):
-						if dev.address == temperatureControlSystem["dhw"]["dhwId"]:
-							found = True
-							self.updateStateOnServer(dev, "name", "Domestic Hot Water")
-							self.updateStateOnServer(dev, "modelType", "DHW")
-							self.updateStateOnServer(dev, "zoneType", "DomesticHotWater")
-							break
-					if found == False:
-						self.plugin.errorLog("[%s] Missing evohome DHW: [%s]" % (time.asctime(), temperatureControlSystem["dhw"]["dhwId"]))
+		if "dhw" in content.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['zones']:
+			found = False
+			for dev in indigo.devices.iter("self.evohomeDHW"):
+				if dev.address == content.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]:
+					found = True
+					self.updateStateOnServer(dev, "name", "Domestic Hot Water")
+					self.updateStateOnServer(dev, "modelType", "DHW")
+					self.updateStateOnServer(dev, "zoneType", "DomesticHotWater")
+					break
+			if found == False:
+				self.plugin.errorLog("[%s] Missing evohome DHW: [%s]" % (time.asctime(), content.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]))
 
-				for zone in temperatureControlSystem["zones"]:
-					found = False
-					for dev in indigo.devices.iter("self.evohomeZone"):
-						if dev.address == zone["zoneId"]:
-							found = True
-							try: self.updateStateOnServer(dev, "name", zone["name"])
-							except: self.de (dev, "name")
-							try: self.updateStateOnServer(dev, "modelType", zone["modelType"])
-							except: self.de (dev, "modelType")
-							try: self.updateStateOnServer(dev, "zoneType", zone["zoneType"])
-							except: self.de (dev, "zoneType")
-							try: self.updateStateOnServer(dev, "maxHeatSetpoint", zone["setpointCapabilities"]["maxHeatSetpoint"])
-							except: self.de (dev, "maxHeatSetpoint")
-							try: self.updateStateOnServer(dev, "minHeatSetpoint", zone["setpointCapabilities"]["minHeatSetpoint"])
-							except: self.de (dev, "minHeatSetpoint")
-							break
-					if found == False:
-						self.plugin.errorLog("[%s] Missing evohome Zone: [%s] %s" % (time.asctime(), zone["zoneId"], zone["name"]))
-	
+		for zone in content.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]["zones"]:
+			found = False
+			for dev in indigo.devices.iter("self.evohomeZone"):
+				if dev.address == zone["zoneId"]:
+					found = True
+					try: self.updateStateOnServer(dev, "name", zone["name"])
+					except: self.de (dev, "name")
+					try: self.updateStateOnServer(dev, "modelType", zone["modelType"])
+					except: self.de (dev, "modelType")
+					try: self.updateStateOnServer(dev, "zoneType", zone["zoneType"])
+					except: self.de (dev, "zoneType")
+					try: self.updateStateOnServer(dev, "maxHeatSetpoint", zone["setpointCapabilities"]["maxHeatSetpoint"])
+					except: self.de (dev, "maxHeatSetpoint")
+					try: self.updateStateOnServer(dev, "minHeatSetpoint", zone["setpointCapabilities"]["minHeatSetpoint"])
+					except: self.de (dev, "minHeatSetpoint")
+					break
+			if found == False:
+				self.plugin.errorLog("[%s] Missing evohome Zone: [%s] %s" % (time.asctime(), zone["zoneId"], zone["name"]))
+
 
 
 	def get_eventLatestId(self):
@@ -314,42 +317,6 @@ class Honeywell(object):
 			else:
 				self.plugin.errorLog("Error: %s, Cannot get events from Honeywell TCC Web API." % response.status_code)
 
-	def get_all(self):
-		for dev in indigo.devices.iter("self.HoneywellThermostat"):
-			if dev.enabled:
-				if self.getDevice(dev) == False:
-					self.plugin.errorLog ("[%s] Failed to retrieve thermostat status for: %s" % (time.asctime(), dev.name))
-					self.errorCount = self.errorCount + 1
-					dev.setErrorStateOnServer("error")
-				else:
-					self.errorCount = 0
-
-	def getDevice(self, dev):
-		url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '?allData=True'
-		headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.myTCC.access_token}
-		try:
-			response = requests.get(url, headers=headers, timeout=reqTimeout)
-		except requests.exceptions.ConnectionError as e:
-			self.plugin.debugLog("[%s] Connection Error for: %s" % (time.asctime(), dev.name))
-			return False
-		except requests.exceptions.Timeout as e:
-			self.plugin.debugLog("[%s] Timeout Error for: %s" % (time.asctime(), dev.name))
-			return False
-		except requests.exceptions.ReadTimeout as e:
-			self.plugin.debugLog("[%s] Read Timeout Error for: %s" % (time.asctime(), dev.name))
-			return False
-		except Exception as e:
-			self.plugin.debugLog("[%s] Error for: %s, %s" % (time.asctime(), dev.name, e.message))
-			return False
-
-		if response.status_code == 200:
-			content = json.loads (response.content)
-			self.updateDevice (dev, content)
-			return True
-		else:
-			self.plugin.debugLog("[%s] Cannot read device data for: %s" % (time.asctime(), dev.name))
-			return False
-
 	def evohome_get_all(self):
 		for dev in indigo.devices.iter("self.evohomeLocation"):
 			if dev.enabled:
@@ -361,30 +328,10 @@ class Honeywell(object):
 					self.evohome_errorCount = 0
 
 	def evohome_getDevice(self, dev):
-		url = self.TCCServer + 'WebAPI/emea/api/v1/location/' + dev.address + '/status?includeTemperatureControlSystems=True'
-		headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.access_token}
-		try:
-			response = requests.get(url, headers=headers, timeout=reqTimeout)
-		except requests.exceptions.ConnectionError as e:
-			self.plugin.errorLog("[%s] Connection Error for: %s" % (time.asctime(), dev.name))
-			return False
-		except requests.exceptions.Timeout as e:
-			self.plugin.debugLog("[%s] Timeout Error for: %s" % (time.asctime(), dev.name))
-			return False
-		except requests.exceptions.ReadTimeout as e:
-			self.plugin.debugLog("[%s] Read Timeout Error for: %s" % (time.asctime(), dev.name))
-			return False
-		except Exception as e:
-			self.plugin.debugLog("[%s] Error for: %s, %s" % (time.asctime(), dev.name, e.message))
-			return False
 
-		if response.status_code == 200:
-			content = json.loads (response.content)
-			self.evohome_updateDevice (dev, content)
-			return True
-		else:
-			self.plugin.errorLog("[%s] Cannot read device data for: %s" % (time.asctime(), dev.name))
-			return False
+		self.evohome_updateDevice (dev)
+
+		return True
 
 	def triggerEvents(self, dev):
 		url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/tracking'
@@ -394,237 +341,101 @@ class Honeywell(object):
 		if response.status_code != 200:
 			self.plugin.errorLog ("[%s] Error: %s, Cannot start event stream." % (time.asctime(), response.status_code))
 
-	def updateDevice(self, dev, content):
-		try:
-			if content["isAlive"] == False:
-				self.plugin.errorLog("[%s] Error: Lost connection with device: %s" % (time.asctime(), dev.name))
-				dev.setErrorStateOnServer("error")
-			else:
-				self.updateStateOnServer(dev, "lastUpdate", str(time.time()))
 
-				try: self.updateStateOnServer(dev, "macID", content["macID"])
-				except: self.de (dev, "macID")
-				try: self.updateStateOnServer(dev, "name", content["name"])
-				except: self.de (dev, "name")
-				try: self.updateStateOnServer(dev, "thermostatModelType", content["thermostatModelType"])
-				except: self.de (dev, "thermostatModelType")
-				try: self.updateStateOnServer(dev, "thermostatVersion", content["thermostatVersion"])
-				except: self.de (dev, "thermostatVersion")
-
-				try:
-					if content["thermostat"]["equipmentOutputStatus"] == "Heating":
-						self.updateStateOnServer(dev, "hvacHeaterIsOn", 1)
-						self.updateStateOnServer(dev, "hvacCoolerIsOn", 0)
-					elif content["thermostat"]["equipmentOutputStatus"] == "Cooling":
-						self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)
-						self.updateStateOnServer(dev, "hvacCoolerIsOn", 1)
-					elif content["thermostat"]["equipmentOutputStatus"] == "Off":
-						self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)
-						self.updateStateOnServer(dev, "hvacCoolerIsOn", 0)
-				except:
-					pass
-					#self.de (dev, "equipmentOutputStatus")
-
-
-
-				try: self.updateStateOnServer(dev, "thermostatAllowedModes", ','.join(content["thermostat"]["allowedModes"]))
-				except: self.de (dev, "thermostatAllowedModes")
-				try: self.updateStateOnServer(dev, "thermostatMode", content["thermostat"]["changeableValues"]["mode"])
-				except: self.de (dev, "thermostatMode")
-
-				if "Heat" in dev.states["thermostatAllowedModes"]:
-					try: self.updateStateOnServer(dev, "setpointHeat", content["thermostat"]["changeableValues"]["heatSetpoint"]["value"])
-					except: self.de (dev, "setpointHeat")
-				if "Cool" in dev.states["thermostatAllowedModes"]:
-					try: self.updateStateOnServer(dev, "setpointCool", content["thermostat"]["changeableValues"]["coolSetpoint"]["value"])
-					except: self.de (dev, "setpointCool")
-
-				try:
-					self.updateStateOnServer(dev, "setpointStatus", content["thermostat"]["changeableValues"]["status"])
-					self.updateStateOnServer(dev, "nextTime", content["thermostat"]["changeableValues"]["nextTime"])
-				except:
-					if dev.states["thermostatMode"] == "Heat":
-						self.updateStateOnServer(dev, "setpointStatus", content["thermostat"]["changeableValues"]["heatSetpoint"]["status"])
-						self.updateStateOnServer(dev, "nextTime", content["thermostat"]["changeableValues"]["heatSetpoint"]["nextTime"])
-					elif dev.states["thermostatMode"] == "Cool":
-						self.updateStateOnServer(dev, "setpointStatus", content["thermostat"]["changeableValues"]["coolSetpoint"]["status"])
-						self.updateStateOnServer(dev, "nextTime", content["thermostat"]["changeableValues"]["coolSetpoint"]["nextTime"])
-					else:
-						self.updateStateOnServer(dev, "setpointStatus", "")
-						self.updateStateOnServer(dev, "nextTime", "")
-
-				try:
-					if dev.states["thermostatMode"] == "Heat":
-						if dev.states["setpointStatus"] == "Scheduled":
-							self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramHeat)
-						else:
-							self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Heat)
-					elif dev.states["thermostatMode"] == "Cool":
-						if dev.states["setpointStatus"] == "Scheduled":
-							self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramCool)
-						else:
-							self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Cool)
-					elif dev.states["thermostatMode"] == "AutoHeat":
-						self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramHeat)
-					elif dev.states["thermostatMode"] == "AutoCool":
-						self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramCool)
-					elif dev.states["thermostatMode"] == "Off":
-						self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Off)
-				except:
-					self.de (dev, "thermostatMode")
-
-				try:
-					if content["thermostat"]["indoorTemperatureStatus"] == "Measured":
-						self.updateStateOnServer(dev, "temperatureInput1", content["thermostat"]["indoorTemperature"])
-					self.updateStateOnServer(dev, "indoorTemperatureStatus", content["thermostat"]["indoorTemperatureStatus"])	
-				except:
-					self.de (dev, "indoorTermperatureStatus")
-
-				try:
-					if content["thermostat"]["indoorHumidityStatus"] == "Measured":
-						self.updateStateOnServer(dev, "humidityInput1", content["thermostat"]["indoorHumidity"])
-					self.updateStateOnServer(dev, "indoorHumidityStatus", content["thermostat"]["indoorHumidityStatus"])	
-				except:
-					self.de (dev, "indoorHumidityStatus")
-
-				try:
-					if content["fan"]["changeableValues"]["mode"] in ["Auto", "Circulate"]:
-						self.updateStateOnServer(dev, "hvacFanMode", indigo.kFanMode.Auto)
-					elif content["fan"]["changeableValues"]["mode"] == "On":
-						self.updateStateOnServer(dev, "hvacFanMode", indigo.kFanMode.AlwaysOn)
-					self.updateStateOnServer(dev, "fanAllowedModes", ','.join(content["fan"]["allowedModes"]))			
-					self.updateStateOnServer(dev, "fanMode", content["fan"]["changeableValues"]["mode"])
-					self.updateStateOnServer(dev, "fanRunning", content["fan"]["fanRunning"])
-				except:
-					pass
-					#self.de (dev, "fanMode")
-
-				try: self.updateStateOnServer(dev, "maxCoolSetpoint", content["thermostat"]["maxCoolSetpoint"])
-				except: self.de (dev, "maxCoolSetpoint")
-				try: self.updateStateOnServer(dev, "maxHeatSetpoint", content["thermostat"]["maxHeatSetpoint"])
-				except: self.de (dev, "maxHeatSetpoint")
-				try: self.updateStateOnServer(dev, "minCoolSetpoint", content["thermostat"]["minCoolSetpoint"])
-				except: self.de (dev, "minCoolSetpoint")
-				try: self.updateStateOnServer(dev, "minHeatSetpoint", content["thermostat"]["minHeatSetpoint"])
-				except: self.de (dev, "minHeatSetpoint")
-
-				try: self.updateStateOnServer(dev, "outdoorHumidity", content["thermostat"]["outdoorHumidity"])
-				except: self.de (dev, "outdoorHumidity")
-				try: self.updateStateOnServer(dev, "outdoorHumidityStatus", content["thermostat"]["outdoorHumidityStatus"])
-				except: self.de (dev, "outdoorHumidityStatus")
-				try: self.updateStateOnServer(dev, "outdoorHumidityAvailable", content["thermostat"]["outdootHumidityAvailable"])
-				except: self.de (dev, "outdoorHumidityAvailable")
-
-				try: self.updateStateOnServer(dev, "outdoorTemperature", content["thermostat"]["outdoorTemperature"])
-				except: self.de (dev, "outdoorTemperature")
-				try: self.updateStateOnServer(dev, "outdoorTemperatureStatus", content["thermostat"]["outdoorTemperatureStatus"])
-				except: self.de (dev, "outdoorTemperatureStatus")
-				try: self.updateStateOnServer(dev, "outdoorTemperatureAvailable", content["thermostat"]["outdoorTemperatureAvailable"])
-				except: self.de (dev, "outdoorTemperatureAvailable")
-
-				try: self.updateStateOnServer(dev, "scheduleCapable", content["thermostat"]["scheduleCapable"])
-				except: self.de (dev, "scheduleCapable")
-				try: self.updateStateOnServer(dev, "scheduleCoolSp", content["thermostat"]["scheduleCoolSp"])
-				except: self.de (dev, "scheduleCoolSp")
-				try: self.updateStateOnServer(dev, "scheduleHeatSp", content["thermostat"]["scheduleHeatSp"])
-				except: self.de (dev, "scheduleHeatSp")
-
-
-		except:
-			pass
-
-	def evohome_updateDevice(self, ldev, content):
+	def evohome_updateDevice(self, ldev,):
 		#indigo.server.log("%s" % content)
-		for gateway in content["gateways"]:
-			for temperatureControlSystem in gateway["temperatureControlSystems"]:
+		content=self.get_evohome_data()
+
+		#for gateway in content["gateways"]:
+		for temperatureControlSystem in gateway["temperatureControlSystems"]:
+			found = False
+			for dev in indigo.devices.iter("self.evohomeController"):
+				if dev.address == temperatureControlSystem["systemId"]:
+					found = True
+					try: self.updateStateOnServer(dev, "activeFaults", temperatureControlSystem["activeFaults"])
+					except: self.updateStateOnServer(dev, "activeFaults", "")
+					try: self.updateStateOnServer(dev, "systemMode", temperatureControlSystem["systemModeStatus"]["mode"])
+					except: self.de (dev, "systemMode")
+					try: self.updateStateOnServer(dev, "systemModePermanent", bool(temperatureControlSystem["systemModeStatus"]["isPermanent"]))
+					except: self.de (dev, "systemModePermanent")
+					if dev.states["systemMode"] == 'AutoWithEco':
+						try: self.updateStateOnServer(dev, "systemModeUntil", zone["systemModeStatus"]["timeUntil"][11:16])
+						except: self.updateStateOnServer(dev, "systemModeUntil", "")
+					elif dev.states["systemMode"] in ['Away', 'DayOff', 'Custom']:
+						try: self.updateStateOnServer(dev, "systemModeUntil", zone["systemModeStatus"]["timeUntil"][0:10])
+						except: self.updateStateOnServer(dev, "systemModeUntil", "")
+					break
+			if found == False:
+				self.plugin.errorLog("[%s] Missing evohome Controller: [%s]" % (time.asctime(), temperatureControlSystem["systemId"]))
+
+			if "dhw" in temperatureControlSystem:
 				found = False
-				for dev in indigo.devices.iter("self.evohomeController"):
-					if dev.address == temperatureControlSystem["systemId"]:
+				for dev in indigo.devices.iter("self.evohomeDHW"):
+					if dev.address == temperatureControlSystem["dhw"]["dhwId"]:
 						found = True
-						try: self.updateStateOnServer(dev, "activeFaults", temperatureControlSystem["activeFaults"])
+						try: self.updateStateOnServer(dev, "activeFaults", temperatureControlSystem["dhw"]["activeFaults"])
 						except: self.updateStateOnServer(dev, "activeFaults", "")
-						try: self.updateStateOnServer(dev, "systemMode", temperatureControlSystem["systemModeStatus"]["mode"])
-						except: self.de (dev, "systemMode")
-						try: self.updateStateOnServer(dev, "systemModePermanent", bool(temperatureControlSystem["systemModeStatus"]["isPermanent"]))
-						except: self.de (dev, "systemModePermanent")
-						if dev.states["systemMode"] == 'AutoWithEco':
-							try: self.updateStateOnServer(dev, "systemModeUntil", zone["systemModeStatus"]["timeUntil"][11:16])
-							except: self.updateStateOnServer(dev, "systemModeUntil", "")
-						elif dev.states["systemMode"] in ['Away', 'DayOff', 'Custom']:
-							try: self.updateStateOnServer(dev, "systemModeUntil", zone["systemModeStatus"]["timeUntil"][0:10])
-							except: self.updateStateOnServer(dev, "systemModeUntil", "")
+						try:
+							if temperatureControlSystem["dhw"]["temperatureStatus"]["isAvailable"] == True:
+								self.updateStateOnServer(dev, "temperatureInput1", temperatureControlSystem["dhw"]["temperatureStatus"]["temperature"])
+								try: self.updateStateOnServer(dev, "zoneMode", temperatureControlSystem["dhw"]["stateStatus"]["mode"])
+								except: self.de (dev, "zoneMode")
+								if temperatureControlSystem["dhw"]["stateStatus"]["state"] == 'Off':
+									self.updateStateOnServer(dev, "zoneState", 'Off')
+									self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Off)
+								elif temperatureControlSystem["dhw"]["stateStatus"]["state"] == 'On':
+									self.updateStateOnServer(dev, "zoneState", 'On')
+									if dev.states["zoneMode"] == 'FollowSchedule':
+										self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramHeat)
+									else:
+										self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Heat)
+								try: self.updateStateOnServer(dev, "zoneModeUntil", temperatureControlSystem["dhw"]["stateStatus"]["until"][11:16])
+								except: self.updateStateOnServer(dev, "zoneModeUntil", "")
+								if dev.states["zoneState"] == "On":
+									self.updateStateOnServer(dev, "hvacHeaterIsOn", 1)
+								else:
+									self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)
+							else:
+								dev.setErrorStateOnServer("error")
+						except:
+							self.de (dev, "temperatureStatus")
 						break
 				if found == False:
-					self.plugin.errorLog("[%s] Missing evohome Controller: [%s]" % (time.asctime(), temperatureControlSystem["systemId"]))
+					self.plugin.errorLog("[%s] Missing evohome DHW: [%s]" % (time.asctime(), temperatureControlSystem["dhw"]["dhwId"]))
 
-				if "dhw" in temperatureControlSystem:
-					found = False
-					for dev in indigo.devices.iter("self.evohomeDHW"):
-						if dev.address == temperatureControlSystem["dhw"]["dhwId"]:
-							found = True
-							try: self.updateStateOnServer(dev, "activeFaults", temperatureControlSystem["dhw"]["activeFaults"])
-							except: self.updateStateOnServer(dev, "activeFaults", "")
-							try: 
-								if temperatureControlSystem["dhw"]["temperatureStatus"]["isAvailable"] == True:
-									self.updateStateOnServer(dev, "temperatureInput1", temperatureControlSystem["dhw"]["temperatureStatus"]["temperature"])
-									try: self.updateStateOnServer(dev, "zoneMode", temperatureControlSystem["dhw"]["stateStatus"]["mode"])
-									except: self.de (dev, "zoneMode")
-									if temperatureControlSystem["dhw"]["stateStatus"]["state"] == 'Off':
-										self.updateStateOnServer(dev, "zoneState", 'Off')
-										self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Off)
-									elif temperatureControlSystem["dhw"]["stateStatus"]["state"] == 'On':
-										self.updateStateOnServer(dev, "zoneState", 'On')
-										if dev.states["zoneMode"] == 'FollowSchedule':
-											self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramHeat)
-										else:
-											self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Heat)
-									try: self.updateStateOnServer(dev, "zoneModeUntil", temperatureControlSystem["dhw"]["stateStatus"]["until"][11:16])
-									except: self.updateStateOnServer(dev, "zoneModeUntil", "")
-									if dev.states["zoneState"] == "On":
-										self.updateStateOnServer(dev, "hvacHeaterIsOn", 1)
-									else:
-										self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)										
+			for zone in temperatureControlSystem["zones"]:
+				found = False
+				for dev in indigo.devices.iter("self.evohomeZone"):
+					if dev.address == zone["zoneId"]:
+						found = True
+						try: self.updateStateOnServer(dev, "activeFaults", zone["activeFaults"])
+						except: self.updateStateOnServer(dev, "activeFaults", "")
+						try:
+							if zone["temperatureStatus"]["isAvailable"] == True:
+								self.updateStateOnServer(dev, "temperatureInput1", zone["temperatureStatus"]["temperature"])
+								try: self.updateStateOnServer(dev, "setpointHeat", zone["setpointStatus"]["targetHeatTemperature"])
+								except: self.de (dev, "setpointHeat")
+								try:
+									self.updateStateOnServer(dev, "setpointMode", zone["setpointStatus"]["setpointMode"])
+									if zone["setpointStatus"]["setpointMode"] in ['PermanentOverride', 'TemporaryOverride']:
+										self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Heat)
+									elif zone["setpointStatus"]["setpointMode"] == 'FollowSchedule':
+										self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramHeat)
+								except:
+									self.de (dev, "setpointMode")
+								try: self.updateStateOnServer(dev, "setpointUntil", zone["setpointStatus"]["until"][11:16])
+								except: self.updateStateOnServer(dev, "setpointUntil", "")
+								if float(dev.states["temperatureInput1"]) < (dev.states["setpointHeat"]):
+									self.updateStateOnServer(dev, "hvacHeaterIsOn", 1)
 								else:
-									dev.setErrorStateOnServer("error")
-							except:
-								self.de (dev, "temperatureStatus")
-							break
-					if found == False:
-						self.plugin.errorLog("[%s] Missing evohome DHW: [%s]" % (time.asctime(), temperatureControlSystem["dhw"]["dhwId"]))
-
-				for zone in temperatureControlSystem["zones"]:
-					found = False
-					for dev in indigo.devices.iter("self.evohomeZone"):
-						if dev.address == zone["zoneId"]:
-							found = True
-							try: self.updateStateOnServer(dev, "activeFaults", zone["activeFaults"])
-							except: self.updateStateOnServer(dev, "activeFaults", "")
-							try: 
-								if zone["temperatureStatus"]["isAvailable"] == True:
-									self.updateStateOnServer(dev, "temperatureInput1", zone["temperatureStatus"]["temperature"])
-									try: self.updateStateOnServer(dev, "setpointHeat", zone["setpointStatus"]["targetHeatTemperature"])
-									except: self.de (dev, "setpointHeat")
-									try:
-										self.updateStateOnServer(dev, "setpointMode", zone["setpointStatus"]["setpointMode"])
-										if zone["setpointStatus"]["setpointMode"] in ['PermanentOverride', 'TemporaryOverride']:
-											self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.Heat)
-										elif zone["setpointStatus"]["setpointMode"] == 'FollowSchedule':
-											self.updateStateOnServer(dev, "hvacOperationMode", indigo.kHvacMode.ProgramHeat)
-									except:
-										self.de (dev, "setpointMode")
-									try: self.updateStateOnServer(dev, "setpointUntil", zone["setpointStatus"]["until"][11:16])
-									except: self.updateStateOnServer(dev, "setpointUntil", "")
-									if float(dev.states["temperatureInput1"]) < (dev.states["setpointHeat"]):
-										self.updateStateOnServer(dev, "hvacHeaterIsOn", 1)
-									else:
-										self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)
-								else:
-									dev.setErrorStateOnServer("error")
-							except:
-								self.de (dev, "temperatureStatus")
-							break
-					if found == False:
-						self.plugin.errorLog("[%s] Missing evohome Zone: [%s] %s" % (time.asctime(), zone["zoneId"], zone["name"]))
+									self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)
+							else:
+								dev.setErrorStateOnServer("error")
+						except:
+							self.de (dev, "temperatureStatus")
+						break
+				if found == False:
+					self.plugin.errorLog("[%s] Missing evohome Zone: [%s] %s" % (time.asctime(), zone["zoneId"], zone["name"]))
 
 
 	def updateUIDataEvent(self, dev, content):
@@ -766,29 +577,14 @@ class Honeywell(object):
 		if not userCancelled:
 			self.plugin.debugLog("[%s] Getting plugin preferences." % time.asctime())
 
-			try:		
+			try:
 				self.plugin.debug = self.plugin.pluginPrefs['showDebugInLog']
 			except:
 				self.plugin.debug = False
 
-			if self.plugin.pluginPrefs["TCCServer"] == "NA":
-				self.TCCServer = "https://tccna.honeywell.com/"
-			elif self.plugin.pluginPrefs["TCCServer"] == "EU":
-				self.TCCServer = "https://tcceu.honeywell.com/"
-			elif self.plugin.pluginPrefs["TCCServer"] == "QA":
-				self.TCCServer = "https://qtccna.honeywell.com/sandbox/"
 
-			try:
-				if (self.WiFi != self.plugin.pluginPrefs["Wi-Fi"]) or \
-					(self.UserID != self.plugin.pluginPrefs["UserID"]) or \
-					(self.Password != self.plugin.pluginPrefs["Password"]):
-					self.WiFi = self.plugin.pluginPrefs["Wi-Fi"]
-					self.UserID = self.plugin.pluginPrefs["UserID"]
-					self.Password = self.plugin.pluginPrefs["Password"]
-					if self.WiFi == True:
-						self.start_WiFi()
-			except:
-				pass
+			# For Evohome this will always be EU (WE CAN REMOVE)
+
 
 			try:
 				self.UIChanges = self.plugin.pluginPrefs["UIChanges"]
@@ -947,7 +743,7 @@ class Honeywell(object):
 					headers.update(h_HoneywellThermostat)
 					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/mode?changeTag=Indigo'
 					indigo.server.log("[%s]: Setting HVAC Mode to: Off" % dev.name)
-					response = requests.put(url, data=json.dumps("Off"), headers=headers)					
+					response = requests.put(url, data=json.dumps("Off"), headers=headers)
 				elif dev.deviceTypeId == 'evohomeDHW':
 					headers.update(h_evohome)
 					url = self.TCCServer + 'WebAPI/emea/api/v1/domesticHotWater/' + dev.address + '/state'
@@ -993,7 +789,7 @@ class Honeywell(object):
 
 			if dev.deviceTypeId == 'HoneywellThermostat':
 				self.HQ[dev.id]['OperationMode'] = self.HQ[dev.id]['OperationMode'] + 1
-	
+
 		elif action.thermostatAction == indigo.kThermostatAction.SetFanMode:
 			if dev.deviceTypeId == 'HoneywellThermostat':
 				headers.update(h_HoneywellThermostat)
@@ -1017,61 +813,9 @@ class Honeywell(object):
 			indigo.kThermostatAction.RequestSetpoints]:
 			indigo.server.log("[%s]: Requesting Status..." % dev.name)
 
-		if dev.deviceTypeId == 'HoneywellThermostat':
-			self.getDevice (dev)
-		elif dev.deviceTypeId in ['evohomeDHW', 'evohomeZone', 'evohomeController']:
+
+		if dev.deviceTypeId in ['evohomeDHW', 'evohomeZone', 'evohomeController']:
 			self.evohome_get_all ()
-		return
-
-	def actionCustomControl(self, pluginAction, action):
-		if self.WiFiStatus == False:
-			return
-		dev = indigo.devices[pluginAction.deviceId]
-		headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.myTCC.access_token}
-
-		if action == "actionSetpointStatus":
-			if "Cool" in dev.states["thermostatMode"]:
-				cValue = "coolSetpoint"
-				spValue = dev.states["setpointCool"]
-				schValue = dev.states["scheduleCoolSp"]
-			elif "Heat" in dev.states["thermostatMode"]:
-				cValue = "heatSetpoint"
-				spValue = dev.states["setpointHeat"]
-				schValue = dev.states["scheduleHeatSp"]
-			else:
-				return
-			url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/' + cValue + '?changeTag=Indigo'
-			setting = pluginAction.props.get("setting")
-			if setting == "Scheduled":
-				indigo.server.log("[%s]: Setting Setpoint Status to: Scheduled" % dev.name)
-				postdata = {'value':schValue, 'status':'Scheduled', 'nextTime':dev.states["nextTime"]}
-			elif setting == "Temporary":
-				indigo.server.log("[%s]: Setting Setpoint Status to: Temporary Hold" % dev.name)
-				postdata = {'value':spValue, 'status':'Temporary', 'nextTime':dev.states["nextTime"]}
-			elif setting == "Hold":
-				indigo.server.log("[%s]: Setting Setpoint Status to: Permanent Hold" % dev.name)
-				postdata = {'value':spValue, 'status':'Hold', 'nextTime':dev.states["nextTime"]}
-			response = requests.put(url, data=json.dumps(postdata), headers=headers)
-			if response.status_code != 201:
-				self.plugin.errorLog("[%s]: Cannnot set Setpoint Status for: %s" % (time.asctime(), dev.name))
-
-		elif action == "actionZoneSetpoint":
-			settingType = pluginAction.props.get("settingType")
-			setting = pluginAction.props.get("setting")
-			if pluginAction.props.get("Timing") == True:
-				Timing = 'Hold'
-			else:
-				Timing = 'Temporary'
-			Duration = pluginAction.props.get("Duration")
-			indigo.server.log("[%s]: Setting %s Setpoint to: %s" % (dev.name, settingType, setting))
-			url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/' + settingType + 'Setpoint?changeTag=Indigo'
-			postdata = {'value':setting, 'status':Timing, 'nextTime':'2000-01-01T' + Duration + ':00'}
-			response = requests.put(url, data=json.dumps(postdata), headers=headers)
-			if response.status_code != 201:
-				self.plugin.errorLog("[%s]: Cannnot set Setpoint for: %s" % (time.asctime(), dev.name))
-
-
-		self.getDevice (dev)
 		return
 
 	def evohome_actionCustomControl(self, pluginAction, action):
@@ -1093,7 +837,7 @@ class Honeywell(object):
 						self.plugin.errorLog("[%s]: Duration [%s] is out of range (1-24)" % (time.asctime(), Duration))
 						return
 					else:
-						until = (datetime.utcnow() + timedelta(hours=Duration)).strftime("%Y-%m-%dT%H:00:00Z")					
+						until = (datetime.utcnow() + timedelta(hours=Duration)).strftime("%Y-%m-%dT%H:00:00Z")
 						postdata = {'SystemMode':setting, 'Permanent':False, 'TimeUntil':until}
 						indigo.server.log("[%s]: Setting SystemMode to: Auto with Eco until: %s" % (dev.name, until))
 				else:
@@ -1269,174 +1013,84 @@ class Honeywell(object):
 				indigo.server.log("[%s]: Setting Domestic Hot Water Mode to: %s" % (dev.name, setting))
 			response = requests.put(url, data=json.dumps(postdata), headers=headers)
 			if response.status_code != 201:
-				self.plugin.errorLog("[%s]: Cannnot set setpointHeat for: %s" % (time.asctime(), dev.name))
+				self.plugin.errorLog("[%s]: Cannnot set setpoint Heat for: %s" % (time.asctime(), dev.name))
 
 		self.evohome_get_all ()
 		return
 
-	def dumpJSON(self, action, dev):
-		url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '?allData=True'
-		headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.myTCC.access_token}
-		response = requests.get(url, headers=headers)
-		if response.status_code == 200:
-			content = json.loads (response.content)
-			indigo.server.log("%s" % json.dumps(content,sort_keys=True,indent=4, separators=(',', ': ')))
-		else:
-			self.plugin.errorLog("Cannot read device data for: %s" % dev.name)
-
-	def dumpTCC(self):
-		headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.myTCC.access_token}
-		url = self.TCCServer + 'WebAPI/api/accountInfo'
-		response = requests.get(url, headers=headers)
-		if response.status_code != 200:
-			self.plugin.errorLog("[%s] Cannot read TCC data" % time.asctime())
-			return
-		content = json.loads (response.content)
-		userID = content["userID"]
-		url = self.TCCServer + 'WebAPI/api/locations?userId=' + str(userID) + '&allData=False&include=1'
-		response = requests.get(url, headers=headers)
-		if response.status_code != 200:
-			self.plugin.errorLog("[%s] Cannot read TCC data" % time.asctime())
-			return			
-		content = json.loads (response.content)
-		indigo.server.log("┌────────────────────────┬─────────────────┬──────────────────┬───────────────────┐")
-		indigo.server.log("│        Location        │    Device ID    │       Name       │       Model       │")
-		indigo.server.log("├-───────────────────────┼─────────────────┼──────────────────┼───────────────────┤")
-		try: os.remote("thermostat_data.log")
-		except: pass
-		tout = open("thermostat_data.log", 'w')
-		for location in content:
-			for device in location["devices"]:
-				indigo.server.log("│ %s │ %s │ %s │ %s │" % (location["name"].ljust(22), str(device["deviceID"]).ljust(15), device["name"].ljust(16), device["thermostatModelType"].ljust(17)))
-				url = self.TCCServer + 'WebAPI/api/devices/' + str(device["deviceID"]) + '?allData=True'
-				response = requests.get(url, headers=headers)
-				if response.status_code == 200:
-					content = json.loads (response.content)
-					tout.write(str(json.dumps(content,sort_keys=True,indent=4, separators=(',', ': '))))
-					tout.write('\n\n')
-		tout.close()
-		indigo.server.log("└────────────────────────┴─────────────────┴──────────────────┴───────────────────┘")
 
 	def dumpEvohomeTCC(self):
 
-		url = "https://mytotalconnectcomfort.com/WebApi/api/Session"
-		payload = 'username='+self.plugin.pluginPrefs['evohome_UserID']+'&password='+self.plugin.pluginPrefs['evohome_Password']+'&ApplicationId=91db1612-73fd-4500-91b2-e63b069b185c'
-		headers = {
-			'Content-type': 'application/x-www-form-urlencoded'
-		}
-		response = requests.request("POST", url, headers=headers, data=payload)
-
-		if response.status_code != 200:
-			self.plugin.errorLog("[%s] Cannot read evohome TCC data" % time.asctime())
-			return			
-		content = json.loads(response.content)
-		self.access_token=content["sessionId"]
-
-		userID = str(content["userInfo"]['userID'])
-
-		url = 'https://mytotalconnectcomfort.com/WebApi/api/locations?userId=' + userID + '&allData=True'
-		headers = dict(sessionID=self.access_token)
-		payload = {}
-		response = requests.request("GET", url, headers=headers, data=payload)
-		if response.status_code != 200:
-			self.plugin.errorLog("[%s] Cannot read evohome TCC data" % time.asctime())
-			return			
-		all_locations = json.loads(response.content)
+		#client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'])
+		client = self.get_evohome_data()
 		indigo.server.log("┌────────────────────────┬─────────────────┬─────────────────┬──────────────────┬───────────────────┐")
 		indigo.server.log("│        Location        │    System ID    │    Device ID    │       Name       │       Model       │")
 		indigo.server.log("├────────────────────────┼─────────────────┼─────────────────┼──────────────────┼───────────────────┤")
-		#indigo.server.log(all_locations['devices'])
-		#indigo.server.log("all_locations: %s" % all_locations["name"])
-		for device_instance in all_locations[0]["devices"]:
-			if device_instance["thermostatModelType"] == "DOMESTIC_HOT_WATER":
-				indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (
-				all_locations[0]["name"].ljust(22), str(all_locations[0]["locationID"]).ljust(15), "".ljust(15),
-				"".ljust(16), "DomesticHotWater".ljust(17)))
+		indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (client.installation_info[0]['locationInfo']['name'].ljust(22), str(
+			client.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']).ljust(15),
+											  "".ljust(15), "".ljust(16),
+											  client.installation_info[0]['gateways'][0]['temperatureControlSystems'][
+												  0]['modelType'].ljust(17)))
+		for device in client.temperatures():
+			if device['thermostat'] == 'DOMESTIC_HOT_WATER':
+				indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (client.installation_info[0]['locationInfo']['name'].ljust(22),
+													  str(client.installation_info[0]['gateways'][0][
+															  'temperatureControlSystems'][0]['systemId']).ljust(15),
+													  device["id"].ljust(15), "".ljust(16),
+													  "DomesticHotWater".ljust(17)))
 			else:
-				indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (
-				all_locations[0]["name"].ljust(22), str(all_locations[0]["locationID"]).ljust(15),
-				str(device_instance["deviceID"]).ljust(15), device_instance["name"].ljust(16),
-				device_instance["thermostatModelType"].ljust(17)))
+				indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (client.installation_info[0]['locationInfo']['name'].ljust(22),
+													  str(client.installation_info[0]['gateways'][0][
+															  'temperatureControlSystems'][0]['systemId']).ljust(15),
+													  device["id"].ljust(15), device["name"].ljust(16),
+													  "HeatingZone".ljust(17)))
 
-			#indigo.server.log("\tgateway: %s" % all_locations["devices"]["deviceId"])
-			#indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (all_locations["locationInfo"]["name"].ljust(22), all_locations["systemId"].ljust(15), "".ljust(15), "".ljust(16), all_locations["thermostatModelType"].ljust(17)))
-			#indigo.server.log("\t\tsystem: %s" % all_locations["locationId"])
-			#if "dhw" in temperatureControlSystem:
-			#	indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (all_locations["locationInfo"]["name"].ljust(22), all_locations["systemId"].ljust(15), all_locations["devices"]["deviceID"].ljust(15), "".ljust(16), "DomesticHotWater".ljust(17)))
-			#else:
-			#	indigo.server.log("│ %s │ %s │ %s │ %s │ %s │" % (all_locations["locationInfo"]["name"].ljust(22), all_locations["systemId"].ljust(15), all_locations["devices"]["deviceID"].ljust(15), zone["name"].ljust(16), all_locations["thermostatModelType"].ljust(17)))
-			#	indigo.server.log("\t\t\tzone: %s" % zone["zoneId"])
 		indigo.server.log("└────────────────────────┴─────────────────┴─────────────────┴──────────────────┴───────────────────┘")
+
 
 	def createEvohomeDevices(self):
 		devPropsZone = {'NumHumidityInputs':0, 'SupportsCoolSetpoint':False, 'SupportsHvacFanMode':False, 'ShowCoolHeatEquipmentStateUI':True}
 		devPropsDHW = {'NumHumidityInputs':0, 'SupportsHeatSetpoint':False, 'SupportsCoolSetpoint':False, 'SupportsHvacFanMode':False, 'ShowCoolHeatEquipmentStateUI':True}
 
-		#headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.access_token}
-		#url = self.TCCServer + 'WebAPI/emea/api/v1/userAccount'
-		#response = requests.get(url, headers=headers)
-		#content = json.loads (response.content)
-		#if response.status_code != 200:
-		#	self.plugin.errorLog("[%s] Cannot read evohome TCC data" % time.asctime())
-		url = "https://mytotalconnectcomfort.com/WebApi/api/Session"
-		payload = 'username='+self.plugin.pluginPrefs['evohome_UserID']+'&password='+self.plugin.pluginPrefs['evohome_Password']+'&ApplicationId=91db1612-73fd-4500-91b2-e63b069b185c'
-		headers = {
-			'Content-type': 'application/x-www-form-urlencoded'
-		}
-		response = requests.request("POST", url, headers=headers, data=payload)
+		client = self.get_evohome_data()
 
-		if response.status_code != 200:
-			self.plugin.errorLog("[%s] Cannot read evohome TCC data" % time.asctime())
-			return			
-		userID = str(content["userInfo"]['userID'])
+		found = False
+		for dev in indigo.devices.iter("self.evohomeLocation"):
+			if dev.address == client.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']:
+				found = True
+				break
+		if found == False:
+			dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=str(client.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']), deviceTypeId='evohomeLocation', name='EV Loc: ' + client.installation_info[0]['locationInfo']['name'])
+			indigo.server.log("[%s] Created evohome Location: [%s] %s" % (time.asctime(), dev.address, dev.name))
 
-		url = self.TCCServer + 'WebAPI/emea/api/v1/location/installationInfo?userId=' + userID + '&includeTemperatureControlSystems=True'
-		response = requests.get(url, headers=headers)
-		if response.status_code != 200:
-			self.plugin.errorLog("[%s] Cannot read evohome TCC data" % time.asctime())
-			return			
-		all_locations = json.loads (response.content)
+		found = False
+		for dev in indigo.devices.iter("self.evohomeController"):
+			if dev.address == str(client.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']):
+				found = True
+				break
+		if found == False:
+			dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=str(client.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']), deviceTypeId='evohomeController', name='EV Con: ' + client.installation_info[0]['locationInfo']['name'] + ' [' + str(client.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']) + ']')
+			indigo.server.log("[%s] Created evohome Controller: [%s] %s" % (time.asctime(), dev.address, dev.name))
 
-		for location in all_locations:
-			found = False
-			for dev in indigo.devices.iter("self.evohomeLocation"):
-				if dev.address == all_locations[0]["locationID"]:
-					found = True
-					break
-			if found == False:
-				dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=location["locationInfo"]["locationId"], deviceTypeId='evohomeLocation', name='EV Loc: ' + location["locationInfo"]["name"])
-				indigo.server.log("[%s] Created evohome Location: [%s] %s" % (time.asctime(), dev.address, dev.name))
-
-			for gateway in location["gateways"]:
-				for temperatureControlSystem in gateway["temperatureControlSystems"]:
-					found = False
-					for dev in indigo.devices.iter("self.evohomeController"):
-						if dev.address == temperatureControlSystem["systemId"]:
-							found = True
-							break
-					if found == False:
-						dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=temperatureControlSystem["systemId"], deviceTypeId='evohomeController', name='EV Con: ' + location["locationInfo"]["name"] + ' [' + temperatureControlSystem["systemId"] + ']')
-						indigo.server.log("[%s] Created evohome Controller: [%s] %s" % (time.asctime(), dev.address, dev.name))
-
-					if "dhw" in temperatureControlSystem:
-						found = False
-						for dev in indigo.devices.iter("self.evohomeDHW"):
-							if dev.address == temperatureControlSystem["dhw"]["dhwId"]:
-								found = True
-								break
-						if found == False:
-							dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=temperatureControlSystem["dhw"]["dhwId"], deviceTypeId='evohomeDHW', props=devPropsDHW, name='EV DHW: ' + temperatureControlSystem["systemId"])
-							indigo.server.log("[%s] Created evohome DHW: [%s] %s" % (time.asctime(), dev.address, dev.name))
-
-					for zone in temperatureControlSystem["zones"]:
-						found = False
-						for dev in indigo.devices.iter("self.evohomeZone"):
-							if dev.address == zone["zoneId"]:
-								found = True
-								break
-						if found == False:
-							dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=zone["zoneId"], deviceTypeId='evohomeZone', props=devPropsZone, name='EV Zone: ' + zone["name"])
-							indigo.server.log("[%s] Created evohome Zone: [%s] %s" % (time.asctime(), dev.address, dev.name))
+		for device_instance in client.temperatures():
+			if device_instance["thermostat"] == "DOMESTIC_HOT_WATER":
+				found = False
+				for dev in indigo.devices.iter("self.evohomeDHW"):
+					if dev.address == str(device_instance["id"]):
+						found = True
+						break
+				if found == False:
+					dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=str(device_instance["id"]), deviceTypeId='evohomeDHW', props=devPropsDHW, name='EV DHW: ' + str(client.installation_info[0]['gateways'][0]['temperatureControlSystems'][0]['systemId']))
+					indigo.server.log("[%s] Created evohome DHW: [%s] %s" % (time.asctime(), dev.address, dev.name))
+			if device_instance["thermostat"] == "EMEA_ZONE":
+				found = False
+				for dev in indigo.devices.iter("self.evohomeZone"):
+					if dev.address == str(device_instance["id"]):
+						found = True
+						break
+				if found == False:
+					dev = indigo.device.create(protocol=indigo.kProtocol.Plugin, address=str(device_instance["id"]), deviceTypeId='evohomeZone', props=devPropsZone, name='EV Zone: ' + device_instance["name"])
+					indigo.server.log("[%s] Created evohome Zone: [%s] %s" % (time.asctime(), dev.address, dev.name))
 
 		self.evohome_initDevice ()
 
@@ -1454,7 +1108,7 @@ class Honeywell(object):
 		if len(errorsDict) > 0:
 			self.plugin.errorLog("\t Validation Errors")
 			return (False, valuesDict, errorsDict)
-		else:			
+		else:
 			self.plugin.debugLog("\t Validation Succesful")
 			self.needToGetPluginPrefs = True
 			return (True, valuesDict)
@@ -1467,3 +1121,19 @@ class Honeywell(object):
 			self.plugin.debugLog("---------------------------------------------")
 		else:
 			indigo.server.log("---------------------------------------------")
+
+	def get_evohome_data(self):
+		try:
+			client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'], access_token_expires=datetime.strptime(self.plugin.pluginPrefs['access_token_expires'],"%Y-%m-%d %H:%M:%S.%f"))
+		except Exception as error:
+				self.evohomeStatus = False
+				self.plugin.errorLog("[%s] Cannot read evohome TCC data " % time.asctime())
+				self.plugin.debugLog(str(error))
+				return
+		self.plugin.debugLog("[%s] when token expires." % client.access_token_expires)
+
+		self.plugin.pluginPrefs['refresh_token']=client.refresh_token
+		self.plugin.pluginPrefs['access_token']=client.access_token
+		self.plugin.pluginPrefs['access_token_expires']=str(client.access_token_expires)
+		self.plugin.debugLog("[%s] Authenticated to Evohome API." % time.asctime())
+		return client

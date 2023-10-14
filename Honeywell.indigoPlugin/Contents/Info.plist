@@ -11,14 +11,14 @@
 	<key>CFBundleDisplayName</key>
 	<string>Honeywell</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.ssi.indigoplugin.Honeywell</string>
+	<string>com.barn.indigoplugin.Honeywell2</string>
 	<key>CFBundleVersion</key>
 	<string>1.0.0</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>http://vulture.lagaros.com:8000/wordpress/</string>
+			<string>https://forums.indigodomo.com/viewforum.php?f=319</string>
 		</dict>
 	</array>
 </dict>

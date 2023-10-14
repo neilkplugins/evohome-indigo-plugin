@@ -49,9 +49,6 @@ class Plugin(indigo.PluginBase):
 	def deviceStopComm(self, dev):
 		self.Honeywell.deviceStopComm (dev)
 
-	def checkForUpdates(self):
-		indigo.server.log("Manually checking for updates")
-		self.updater.checkVersionNow()
 
 	def closedPrefsConfigUi(self, valuesDict, userCancelled):
 		self.Honeywell.closedPrefsConfigUi(valuesDict, userCancelled)

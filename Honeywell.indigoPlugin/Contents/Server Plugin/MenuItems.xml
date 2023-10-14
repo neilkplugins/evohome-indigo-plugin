@@ -3,7 +3,7 @@
 
 	<MenuItem id="sep1" />
 	<MenuItem id="menu1">
-		<Name>Log evohome TCC Device IDs</Name>
+		<Name>Log evohome Device IDs</Name>
 		<CallbackMethod>dumpEvohomeTCC</CallbackMethod>
 	</MenuItem>
 	<MenuItem id="menu2">
@@ -15,9 +15,5 @@
 		<CallbackMethod>initEvohomeDevices</CallbackMethod>
 	</MenuItem>
 
-	<MenuItem id="sep2" />
-	<MenuItem id="menu4">
-		<Name>Check for Updates</Name>
-		<CallbackMethod>checkForUpdates</CallbackMethod>
-	</MenuItem>
+
 </MenuItems>
