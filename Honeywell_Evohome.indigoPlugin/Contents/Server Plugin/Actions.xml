@@ -3,7 +3,7 @@
 
 
 	<Action id="sep1"/>
-	<Action id="evohome_systemModeSet" deviceFilter="self.evohomeController" uiPath="evohome">
+	<Action id="evohome_systemModeSet" deviceFilter="self.evohomeController" >
 		<Name>System Mode</Name>
 		<CallbackMethod>evohome_actionSystemModeSet</CallbackMethod>
 		<ConfigUI>
@@ -48,8 +48,7 @@
 			</Field>
 		</ConfigUI>
 	</Action>
-	<Action id="sep2" uiPath="evohome" />
-	<Action id="evohome_zoneSetpointMode" deviceFilter="self.evohomeZone" uiPath="evohome">
+	<Action id="evohome_zoneSetpointMode" deviceFilter="self.evohomeZone" >
 		<Name>Zone Setpoint Mode</Name>
 		<CallbackMethod>evohome_actionZoneSetpointMode</CallbackMethod>
 		<ConfigUI>
@@ -81,7 +80,7 @@
 			</Field>
 		</ConfigUI>
 	</Action>
-	<Action id="evohome_zoneSetpoint" deviceFilter="self.evohomeZone" uiPath="evohome">
+	<Action id="evohome_zoneSetpoint" deviceFilter="self.evohomeZone" >
 		<Name>Zone Setpoint</Name>
 		<CallbackMethod>evohome_actionZoneSetpoint</CallbackMethod>
 		<ConfigUI>
@@ -114,7 +113,7 @@
 			</Field>
 		</ConfigUI>
 	</Action>	
-	<Action id="evohome_zoneSetpointIncrease" deviceFilter="self.evohomeZone" uiPath="evohome">
+	<Action id="evohome_zoneSetpointIncrease" deviceFilter="self.evohomeZone" >
 		<Name>Increase Zone Setpoint</Name>
 		<CallbackMethod>evohome_actionZoneSetpointIncrease</CallbackMethod>
 		<ConfigUI>
@@ -147,7 +146,7 @@
 			</Field>
 		</ConfigUI>
 	</Action>
-	<Action id="evohome_zoneSetpointDecrease" deviceFilter="self.evohomeZone" uiPath="evohome">
+	<Action id="evohome_zoneSetpointDecrease" deviceFilter="self.evohomeZone" >
 		<Name>Decrease Zone Setpoint</Name>
 		<CallbackMethod>evohome_actionZoneSetpointDecrease</CallbackMethod>
 		<ConfigUI>
@@ -180,8 +179,7 @@
 			</Field>
 		</ConfigUI>
 	</Action>
-	<Action id="sep3" uiPath="evohome" />
-	<Action id="evohome_dhwMode" deviceFilter="self.evohomeDHW" uiPath="evohome">
+	<Action id="evohome_dhwMode" deviceFilter="self.evohomeDHW" >
 		<Name>Domestic Hot Water Mode</Name>
 		<CallbackMethod>evohome_actionDHWMode</CallbackMethod>
 		<ConfigUI>
@@ -213,7 +211,7 @@
 			</Field>
 		</ConfigUI>
 	</Action>
-	<Action id="evohome_dhwState" deviceFilter="self.evohomeDHW" uiPath="evohome">
+	<Action id="evohome_dhwState" deviceFilter="self.evohomeDHW" >
 		<Name>Domestic Hot Water State</Name>
 		<CallbackMethod>evohome_actionDHWState</CallbackMethod>
 		<ConfigUI>
