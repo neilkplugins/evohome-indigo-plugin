@@ -3,6 +3,7 @@
 
  
  Documentation to follow but the process is add your evohome credentials to the plugin config and enable debugging (for now)
+ Please do take care entering your credentials, as you can find the retry limit exceeded (each time to hit save on the config dialog it will make a logon attempt)
 
  Dump the device ids to the event window via the Log Evohome device ID's in the plugin menu
  
