@@ -29,14 +29,14 @@ class Honeywell(object):
 	def __init__(self, plugin):
 		self.plugin = plugin
 		self.needToGetPluginPrefs = True
-		self.UIChanges = None
-		self.WiFiStatus = False
+		#self.UIChanges = None
+		#self.WiFiStatus = False
 		self.timer_refresh = None 	# timestamp of last token refresh
 		self.timer_events = None 	# timestamp of last event poll
 		self.timer_full = None 		# timestamp of last device fetch
 		self.timer_lasttry = None 	# timestamp of last token attempt
 		self.token_refresh = None
-		self.token_life = 120
+		#self.token_life = 120
 		self.evohome = False
 		self.evohome_UserID = None
 		self.evohome_Password = None
@@ -45,14 +45,14 @@ class Honeywell(object):
 		self.evohome_timer_full = None
 		self.evohome_timer_lasttry = None
 		self.evohome_token_refresh = None
-		self.TCCServer = None
+		#self.TCCServer = None
 		self.deviceList = []
-		self.eventCurrentId = None
-		self.eventLatestId = None
-		self.errorCount = 0
-		self.evohome_errorCount = 0
-		self.myEvohomeTCC = None
-		self.HQ = {}
+		#self.eventCurrentId = None
+		#self.eventLatestId = None
+		#self.errorCount = 0
+		#self.evohome_errorCount = 0
+		#self.myEvohomeTCC = None
+		#self.HQ = {}
 		self.interval = None
 		self.maxErrors = None
 
@@ -87,20 +87,23 @@ class Honeywell(object):
 	def start_evohome(self):
 
 		self.plugin.debugLog("Starting Evohome......")
-
 		try:
-			client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'], access_token_expires=datetime.strptime(self.plugin.pluginPrefs['access_token_expires'],"%Y-%m-%d %H:%M:%S.%f"))
+			if self.plugin.pluginPrefs['refresh_token']=='':
+				client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'],)
+			else:
+				client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'], access_token_expires=datetime.strptime(self.plugin.pluginPrefs['access_token_expires'],"%Y-%m-%d %H:%M:%S.%f"))
 		except Exception as error:
 				self.evohomeStatus = False
-				self.plugin.errorLog("[%s] Cannot read evohome TCC data " % time.asctime())
+				self.plugin.errorLog("[%s] Cannot read Evohome data " % time.asctime())
 				self.plugin.debugLog(str(error))
 				return
-		self.plugin.debugLog("[%s] when token expires." % client.access_token_expires)
+
+		self.plugin.debugLog("Refresh token expires [%s]" % client.access_token_expires)
 
 		self.plugin.pluginPrefs['refresh_token']=client.refresh_token
 		self.plugin.pluginPrefs['access_token']=client.access_token
 		self.plugin.pluginPrefs['access_token_expires']=str(client.access_token_expires)
-		indigo.server.log("[%s] Authenticated to Evohome API." % time.asctime())
+		indigo.server.log("[%s] Authenticated to Evohome API (Initial Call)." % time.asctime())
 		self.evohomeStatus = True
 		self.evohome_timer_lasttry = time.time()
 
@@ -133,15 +136,15 @@ class Honeywell(object):
 
 		self.updateStateOnServer (dev, "temperatureInput1", 0)
 		self.updateStateOnServer (dev, "humidityInput1", 0)
-		self.updateStateOnServer (dev, "fanAllowedModes", "")
-		self.updateStateOnServer (dev, "fanMode", "")
-		self.updateStateOnServer (dev, "fanRunning", False)
-		self.updateStateOnServer (dev, "indoorHumidityStatus", "")
+		#self.updateStateOnServer (dev, "fanAllowedModes", "")
+		#self.updateStateOnServer (dev, "fanMode", "")
+		#self.updateStateOnServer (dev, "fanRunning", False)
+		#self.updateStateOnServer (dev, "indoorHumidityStatus", "")
 		self.updateStateOnServer (dev, "indoorTemperatureStatus", "")
 		self.updateStateOnServer (dev, "macID", "")
-		self.updateStateOnServer (dev, "maxCoolSetpoint", "")
+		#self.updateStateOnServer (dev, "maxCoolSetpoint", "")
 		self.updateStateOnServer (dev, "maxHeatSetpoint", "")
-		self.updateStateOnServer (dev, "minCoolSetpoint", "")
+		#self.updateStateOnServer (dev, "minCoolSetpoint", "")
 		self.updateStateOnServer (dev, "minHeatSetpoint", "")
 		self.updateStateOnServer (dev, "name", "")
 		self.updateStateOnServer (dev, "nextTime", "")
@@ -158,7 +161,7 @@ class Honeywell(object):
 		self.updateStateOnServer (dev, "thermostatVersion", "")
 		self.updateStateOnServer (dev, "lastUpdate", "")
 
-		self.HQ[dev.id] = {'SetPoint':0, 'OperationMode':0, 'FanMode':0}
+		#self.HQ[dev.id] = {'SetPoint':0, 'OperationMode':0, 'FanMode':0}
 
 
 
@@ -384,197 +387,70 @@ class Honeywell(object):
 			return True
 
 	def actionControlThermostat(self, action, dev):
-		headers = {'content-type':'application/json'}
-		# if self.WiFi:
-		# 	if self.WiFiStatus == False:
-		# 		return
-		h_HoneywellThermostat = {'Authorization':'Bearer ' + self.myTCC.access_token}
-		# if self.evohome:
-		# 	if self.evohomeStatus == False:
-		# 		return
-		h_evohome = {'Authorization':'Bearer ' + self.access_token}
 
-		if action.thermostatAction == indigo.kThermostatAction.SetHeatSetpoint and dev.deviceTypeId in ['HoneywellThermostat', 'evohomeZone']:
+		if self.evohomeStatus == False:
+			return
+		client=self.get_evohome_data()
+
+		if action.thermostatAction == indigo.kThermostatAction.SetHeatSetpoint and dev.deviceTypeId == 'evohomeZone':
 			if ((float(action.actionValue) >= float(dev.states["minHeatSetpoint"])) and
 				(float(action.actionValue) <= float(dev.states["maxHeatSetpoint"]))):
 				indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, action.actionValue))
 
-				if dev.deviceTypeId == 'evohomeZone':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureZone/' + dev.address + '/heatSetpoint'
-					postdata = {'HeatSetpointValue':action.actionValue, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
-				response = requests.put(url, data=json.dumps(postdata), headers=headers)
+				#postdata = {'HeatSetpointValue':action.actionValue, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
+				zone = client.locations[0]._gateways[0]._control_systems[0].zones[dev.states['name']]
+				zone.set_temperature(action.actionValue)
 			else:
 				self.plugin.errorLog ("[%s]: Cannot set heat setpoint [%s] outside limits [%s,%s]" % (dev.name, action.actionValue, dev.states["minHeatSetpoint"], dev.states["maxHeatSetpoint"]))
-		elif action.thermostatAction == indigo.kThermostatAction.IncreaseHeatSetpoint and dev.deviceTypeId in ['HoneywellThermostat', 'evohomeZone']:
+		elif action.thermostatAction == indigo.kThermostatAction.IncreaseHeatSetpoint and dev.deviceTypeId == 'evohomeZone':
 			newSetpoint = dev.states["setpointHeat"] + float(action.actionValue)
 			if ((newSetpoint >= float(dev.states["minHeatSetpoint"])) and (newSetpoint <= float(dev.states["maxHeatSetpoint"]))):
 				indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, newSetpoint))
-				if dev.deviceTypeId == 'HoneywellThermostat':
-					headers.update(h_HoneywellThermostat)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/heatSetpoint?changeTag=Indigo'
-					postdata = {'value':newSetpoint, 'status':self.UIChanges, 'nextTime':dev.states["nextTime"]}
-					self.HQ[dev.id]['SetPoint'] = self.HQ[dev.id]['SetPoint'] + 1
-				elif dev.deviceTypeId == 'evohomeZone':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureZone/' + dev.address + '/heatSetpoint'
-					postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
-				response = requests.put(url, data=json.dumps(postdata), headers=headers)
+
+				#postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
+				zone = client.locations[0]._gateways[0]._control_systems[0].zones[dev.states['name']]
+				zone.set_temperature(newSetpoint)
 			else:
 				self.plugin.errorLog ("[%s]: Cannot set heat setpoint [%s] outside limits [%s,%s]" % (dev.name, newSetpoint, dev.states["minHeatSetpoint"], dev.states["maxHeatSetpoint"]))
-		elif action.thermostatAction == indigo.kThermostatAction.DecreaseHeatSetpoint and dev.deviceTypeId in ['HoneywellThermostat', 'evohomeZone']:
+
+		elif action.thermostatAction == indigo.kThermostatAction.DecreaseHeatSetpoint and dev.deviceTypeId == "evohomeZone":
 			newSetpoint = dev.states["setpointHeat"] - float(action.actionValue)
 			if ((newSetpoint >= float(dev.states["minHeatSetpoint"])) and (newSetpoint <= float(dev.states["maxHeatSetpoint"]))):
 				indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, newSetpoint))
-				if dev.deviceTypeId == 'HoneywellThermostat':
-					headers.update(h_HoneywellThermostat)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/heatSetpoint?changeTag=Indigo'
-					postdata = {'value':newSetpoint, 'status':self.UIChanges, 'nextTime':dev.states["nextTime"]}
-					self.HQ[dev.id]['SetPoint'] = self.HQ[dev.id]['SetPoint'] + 1
-				elif dev.deviceTypeId == 'evohomeZone':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureZone/' + dev.address + '/heatSetpoint'
-					postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
-				response = requests.put(url, data=json.dumps(postdata), headers=headers)
+
+				#postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
+				zone = client.locations[0]._gateways[0]._control_systems[0].zones[dev.states['name']]
+				zone.set_temperature(newSetpoint)
 			else:
 				self.plugin.errorLog ("[%s]: Cannot set heat setpoint [%s] outside limits [%s,%s]" % (dev.name, newSetpoint, dev.states["minHeatSetpoint"], dev.states["maxHeatSetpoint"]))
 
-		elif action.thermostatAction == indigo.kThermostatAction.SetCoolSetpoint and dev.deviceTypeId == 'HoneywellThermostat':
-			if ((float(action.actionValue) >= float(dev.states["minCoolSetpoint"])) and
-				(float(action.actionValue) <= float(dev.states["maxCoolSetpoint"]))):
-				headers.update(h_HoneywellThermostat)
-				url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/coolSetpoint?changeTag=Indigo'
-				indigo.server.log("[%s]: Setting Cool Setpoint to: %s" % (dev.name, action.actionValue))
-				postdata = {'value':action.actionValue, 'status':self.UIChanges, 'nextTime':dev.states["nextTime"]}
-				response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				self.HQ[dev.id]['SetPoint'] = self.HQ[dev.id]['SetPoint'] + 1
-			else:
-				self.plugin.errorLog ("[%s]: Cannot set cool setpoint [%s] outside limits [%s,%s]" % (dev.name, action.actionValue, dev.states["minCoolSetpoint"], dev.states["maxCoolSetpoint"]))
-		elif action.thermostatAction == indigo.kThermostatAction.IncreaseCoolSetpoint and dev.deviceTypeId == 'HoneywellThermostat':
-			newSetpoint = dev.states["setpointCool"] + float(action.actionValue)
-			if ((newSetpoint >= float(dev.states["minCoolSetpoint"])) and (newSetpoint <= float(dev.states["maxCoolSetpoint"]))):
-				headers.update(h_HoneywellThermostat)
-				url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/coolSetpoint?changeTag=Indigo'
-				indigo.server.log("[%s]: Setting Cool Setpoint to: %s" % (dev.name, newSetpoint))
-				postdata = {'value':newSetpoint, 'status':self.UIChanges, 'nextTime':dev.states["nextTime"]}
-				response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				self.HQ[dev.id]['SetPoint'] = self.HQ[dev.id]['SetPoint'] + 1
-			else:
-				self.plugin.errorLog ("[%s]: Cannot set cool setpoint [%s] outside limits [%s,%s]" % (dev.name, newSetpoint, dev.states["minCoolSetpoint"], dev.states["maxCoolSetpoint"]))
-		elif action.thermostatAction == indigo.kThermostatAction.DecreaseCoolSetpoint and dev.deviceTypeId == 'HoneywellThermostat':
-			newSetpoint = dev.states["setpointCool"] - float(action.actionValue)
-			if ((newSetpoint >= float(dev.states["minCoolSetpoint"])) and (newSetpoint <= float(dev.states["maxCoolSetpoint"]))):
-				headers.update(h_HoneywellThermostat)
-				url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/coolSetpoint?changeTag=Indigo'
-				indigo.server.log("[%s]: Setting Cool Setpoint to: %s" % (dev.name, newSetpoint))
-				postdata = {'value':newSetpoint, 'status':self.UIChanges, 'nextTime':dev.states["nextTime"]}
-				response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				self.HQ[dev.id]['SetPoint'] = self.HQ[dev.id]['SetPoint'] + 1
-			else:
-				self.plugin.errorLog ("[%s]: Cannot set cool setpoint [%s] outside limits [%s,%s]" % (dev.name, newSetpoint, dev.states["minCoolSetpoint"], dev.states["maxCoolSetpoint"]))
 
 		elif action.thermostatAction == indigo.kThermostatAction.SetHvacMode:
 			if action.actionMode == indigo.kHvacMode.Cool:
-				if dev.deviceTypeId == 'HoneywellThermostat':
-					headers.update(h_HoneywellThermostat)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/mode?changeTag=Indigo'
-					indigo.server.log("[%s]: Setting HVAC Mode to: Cool" % dev.name)
-					response = requests.put(url, data=json.dumps("Cool"), headers=headers)
+				indigo.server.log("[%s]: Honeywell Evohome does not support Cool mode" % dev.name)
 			elif action.actionMode == indigo.kHvacMode.HeatCool:
-				indigo.server.log("[%s]: Honeywell Thermostat does not support Auto Heat/Cool mode" % dev.name)
+				indigo.server.log("[%s]: Honeywell Evohome does not support Auto Heat/Cool mode" % dev.name)
 			elif action.actionMode == indigo.kHvacMode.Heat:
-				if dev.deviceTypeId == 'HoneywellThermostat':
-					headers.update(h_HoneywellThermostat)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/mode?changeTag=Indigo'
-					indigo.server.log("[%s]: Setting HVAC Mode to: Heat" % dev.name)
-					response = requests.put(url, data=json.dumps("Heat"), headers=headers)
-				elif dev.deviceTypeId == 'evohomeZone':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureZone/' + dev.address + '/heatSetpoint'
-					indigo.server.log("[%s]: Setting HVAC Mode to: Heat" % dev.name)
-					postdata = {'HeatSetpointValue':dev.states["setpointHeat"], 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				elif dev.deviceTypeId == 'evohomeDHW':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/domesticHotWater/' + dev.address + '/state'
-					indigo.server.log("[%s]: Setting Domestic Hot Water State to: On" % dev.name)
-					postdata = {'state':'On', 'mode':'PermanentOverride', 'untilTime':None}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
-
+				indigo.server.log("[%s]: Honeywell Evohome does not support Cool mode" % dev.name)
 			elif action.actionMode == indigo.kHvacMode.Off:
-				if dev.deviceTypeId == 'HoneywellThermostat':
-					headers.update(h_HoneywellThermostat)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/mode?changeTag=Indigo'
-					indigo.server.log("[%s]: Setting HVAC Mode to: Off" % dev.name)
-					response = requests.put(url, data=json.dumps("Off"), headers=headers)
-				elif dev.deviceTypeId == 'evohomeDHW':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/domesticHotWater/' + dev.address + '/state'
-					indigo.server.log("[%s]: Setting Domestic Hot Water State to: Off" % dev.name)
-					postdata = {'state':'Off', 'mode':'PermanentOverride', 'untilTime':None}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
-
+				indigo.server.log("[%s]: Honeywell Evohome does not support HVAC off mode" % dev.name)
 			elif action.actionMode == indigo.kHvacMode.ProgramHeatCool:
-				indigo.server.log("[%s]: Honeywell Thermostat does not support Auto Heat/Cool mode" % dev.name)
-
+				indigo.server.log("[%s]: Honeywell Evohome does not support Auto Heat/Cool mode" % dev.name)
 			elif action.actionMode == indigo.kHvacMode.ProgramCool:
-				if dev.deviceTypeId == 'HoneywellThermostat':
-					headers.update(h_HoneywellThermostat)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/mode?changeTag=Indigo'
-					indigo.server.log("[%s]: Setting HVAC Mode to: Program Cool" % dev.name)
-					response = requests.put(url, data=json.dumps("Cool"), headers=headers)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/coolSetpoint?changeTag=Indigo'
-					indigo.server.log("[%s]: Setting Cool Setpoint to: %s" % (dev.name, dev.states["scheduleCoolSp"]))
-					postdata = {'value':dev.states["scheduleCoolSp"], 'status':'Scheduled', 'nextTime':dev.states["nextTime"]}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
+				indigo.server.log("[%s]: Honeywell Evohome does not support Cool mode" % dev.name)
 			elif action.actionMode == indigo.kHvacMode.ProgramHeat:
-				if dev.deviceTypeId == 'HoneywellThermostat':
-					headers.update(h_HoneywellThermostat)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/mode?changeTag=Indigo'
-					indigo.server.log("[%s]: Setting HVAC Mode to: Program Heat" % dev.name)
-					response = requests.put(url, data=json.dumps("Heat"), headers=headers)
-					url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/thermostat/changeableValues/heatSetpoint?changeTag=Indigo'
-					indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, dev.states["scheduleHeatSp"]))
-					postdata = {'value':dev.states["scheduleHeatSp"], 'status':'Scheduled', 'nextTime':dev.states["nextTime"]}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				elif dev.deviceTypeId == 'evohomeZone':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureZone/' + dev.address + '/heatSetpoint'
-					indigo.server.log("[%s]: Setting HVAC Mode to: Follow Schedule" % dev.name)
-					postdata = {'HeatSetpointValue':None, 'SetpointMode':'FollowSchedule', 'TimeUntil':None}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				elif dev.deviceTypeId == 'evohomeDHW':
-					headers.update(h_evohome)
-					url = self.TCCServer + 'WebAPI/emea/api/v1/domesticHotWater/' + dev.address + '/state'
-					indigo.server.log("[%s]: Setting Domestic Hot Water State to: Follow Schedule" % dev.name)
-					postdata = {'state':None, 'mode':'FollowSchedule', 'untilTime':None}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
+				indigo.server.log("[%s]: Honeywell Evohome does not support Cool mode" % dev.name)
+			elif action.thermostatAction == indigo.kThermostatAction.SetFanMode:
+					indigo.server.log("[%s]: Honeywell Evohome does not support Fan mode" % dev.name)
 
-			if dev.deviceTypeId == 'HoneywellThermostat':
-				self.HQ[dev.id]['OperationMode'] = self.HQ[dev.id]['OperationMode'] + 1
-
-		elif action.thermostatAction == indigo.kThermostatAction.SetFanMode:
-			if dev.deviceTypeId == 'HoneywellThermostat':
-				headers.update(h_HoneywellThermostat)
-				url = self.TCCServer + 'WebAPI/api/devices/' + dev.address + '/fan/changeableValues'
-				if action.actionMode == indigo.kFanMode.Auto:
-					indigo.server.log("[%s]: Setting Fan Mode to: Auto On/Off" % dev.name)
-					postdata = {'mode':'Auto'}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				elif action.actionMode == indigo.kFanMode.AlwaysOn:
-					indigo.server.log("[%s]: Setting Fan Mode to: Always On" % dev.name)
-					postdata = {'mode':'On'}
-					response = requests.put(url, data=json.dumps(postdata), headers=headers)
-				self.HQ[dev.id]['FanMode'] = self.HQ[dev.id]['FanMode'] + 1
-
-		elif action.thermostatAction in [indigo.kThermostatAction.RequestStatusAll,
-			indigo.kThermostatAction.RequestMode,
-			indigo.kThermostatAction.RequestEquipmentState,
-			indigo.kThermostatAction.RequestTemperatures,
-			indigo.kThermostatAction.RequestHumidities,
-			indigo.kThermostatAction.RequestDeadbands,
-			indigo.kThermostatAction.RequestSetpoints]:
-			indigo.server.log("[%s]: Requesting Status..." % dev.name)
+			elif action.thermostatAction in [indigo.kThermostatAction.RequestStatusAll,
+				indigo.kThermostatAction.RequestMode,
+				indigo.kThermostatAction.RequestEquipmentState,
+				indigo.kThermostatAction.RequestTemperatures,
+				indigo.kThermostatAction.RequestHumidities,
+				indigo.kThermostatAction.RequestDeadbands,
+				indigo.kThermostatAction.RequestSetpoints]:
+				indigo.server.log("[%s]: Requesting Status..." % dev.name)
 
 
 		if dev.deviceTypeId in ['evohomeDHW', 'evohomeZone', 'evohomeController']:
@@ -586,13 +462,11 @@ class Honeywell(object):
 			return
 		client=self.get_evohome_data()
 		dev = indigo.devices[pluginAction.deviceId]
-		#headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.access_token}
 
 		if action == "actionSystemModeSet":
-			#url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureControlSystem/' + dev.address + '/mode'
 			setting = pluginAction.props.get("setting")
 			if setting == "Auto1":
-				postdata = {'SystemMode':'Auto', 'Permanent':True, 'TimeUntil':None}
+				#postdata = {'SystemMode':'Auto', 'Permanent':True, 'TimeUntil':None}
 				client.set_status_normal()
 				indigo.server.log("[%s]: Setting SystemMode to: Auto" % dev.name)
 			elif setting == "AutoWithEco":
@@ -602,7 +476,6 @@ class Honeywell(object):
 						self.plugin.errorLog("[%s]: Duration [%s] is out of range (1-24)" % (time.asctime(), Duration))
 						return
 					else:
-						#until = (datetime.utcnow() + timedelta(hours=Duration)).strftime("%Y-%m-%dT%H:00:00Z")
 						#TODO Maybe bug here over duration when a day later
 						until = (datetime.utcnow() + timedelta(hours=Duration))
 						client.set_status_eco(until)
@@ -612,7 +485,7 @@ class Honeywell(object):
 					client.set_status_eco()
 					indigo.server.log("[%s]: Setting SystemMode to: Auto with Eco" % dev.name)
 			elif setting in ['AutoWithReset', 'HeatingOff']:
-				postdata = {'SystemMode':setting, 'Permanent':True, 'TimeUntil':None}
+				#postdata = {'SystemMode':setting, 'Permanent':True, 'TimeUntil':None}
 				indigo.server.log("[%s]: Setting SystemMode to: %s" % (dev.name, setting))
 			elif setting in ['Away', 'DayOff', 'Custom']:
 				if bool(pluginAction.props.get("Timing")) == False:
@@ -621,7 +494,6 @@ class Honeywell(object):
 						self.plugin.errorLog("[%s]: Duration [%s] is out of range (1-99)" % (time.asctime(), Duration))
 						return
 					else:
-						#until = (datetime.utcnow() + timedelta(days=Duration)).strftime("%Y-%m-%dT00:00:00Z")
 						until = (datetime.utcnow() + timedelta(days=Duration))
 						if setting=="Away":
 							client.set_status_away(until=until)
@@ -645,7 +517,6 @@ class Honeywell(object):
 			if setting == 'FollowSchedule':
 				#postdata = {'HeatSetpointValue':None, 'SetpointMode':'FollowSchedule', 'TimeUntil':None}
 				zone.cancel_temp_override()
-
 				indigo.server.log("[%s]: Setting Zone Setpoint Mode to: %s" % (dev.name, setting))
 			elif setting == 'TemporaryOverride':
 				Duration = int(pluginAction.props.get("Duration"))
@@ -656,14 +527,13 @@ class Honeywell(object):
 					t1 = (datetime.utcnow() + timedelta(minutes=Duration))
 					r1 = int(t1.strftime("%M"))
 					t2 = t1.replace(minute=r1-(r1%10))
-					#until = t2.strftime("%Y-%m-%dT%H:%M:00Z")
 					until = t2
 
-					postdata = {'HeatSetpointValue':dev.states["setpointHeat"], 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
+					#postdata = {'HeatSetpointValue':dev.states["setpointHeat"], 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
 					zone.set_temperature(dev.states["setpointHeat"],until)
 					indigo.server.log("[%s]: Setting Heat Setpoint to: %s until: %s" % (dev.name, setting, until))
 			elif setting == 'PermanentOverride':
-				postdata = {'HeatSetpointValue':dev.states["setpointHeat"], 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
+				#postdata = {'HeatSetpointValue':dev.states["setpointHeat"], 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
 				zone.set_temperature(dev.states["setpointHeat"])
 				indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, setting))
 
@@ -682,15 +552,14 @@ class Honeywell(object):
 						t1 = (datetime.utcnow() + timedelta(minutes=Duration))
 						r1 = int(t1.strftime("%M"))
 						t2 = t1.replace(minute=r1-(r1%10))
-						#until = t2.strftime("%Y-%m-%dT%H:%M:00Z")
 						until = t2
 
-						postdata = {'HeatSetpointValue':setting, 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
+						#postdata = {'HeatSetpointValue':setting, 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
 						zone.set_temperature(setting, until)
 
 						indigo.server.log("[%s]: Setting Heat Setpoint to: %s until: %s" % (dev.name, setting, until))
 				else:
-					postdata = {'HeatSetpointValue':setting, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
+					#postdata = {'HeatSetpointValue':setting, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
 					zone.set_temperature(setting)
 
 					indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, setting))
@@ -705,7 +574,6 @@ class Honeywell(object):
 
 			newSetpoint = dev.states["setpointHeat"] + float(setting)
 			if ((newSetpoint >= float(dev.states["minHeatSetpoint"])) and (newSetpoint <= float(dev.states["maxHeatSetpoint"]))):
-				#url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureZone/' + dev.address + '/heatSetpoint'
 				if bool(pluginAction.props.get("Timing")) == False:
 					Duration = int(pluginAction.props.get("Duration"))
 					if Duration < 10 or Duration > 1440:
@@ -715,15 +583,14 @@ class Honeywell(object):
 						t1 = (datetime.utcnow() + timedelta(minutes=Duration))
 						r1 = int(t1.strftime("%M"))
 						t2 = t1.replace(minute=r1-(r1%10))
-						#until = t2.strftime("%Y-%m-%dT%H:%M:00Z")
 						until = t2
 
-						postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
+						#postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
 						zone.set_temperature(newSetpoint, until)
 
 						indigo.server.log("[%s]: Setting Heat Setpoint to: %s until: %s" % (dev.name, newSetpoint, until))
 				else:
-					postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
+					#postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
 					zone.set_temperature(newSetpoint)
 
 					indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, newSetpoint))
@@ -737,7 +604,6 @@ class Honeywell(object):
 			zone=client.locations[0]._gateways[0]._control_systems[0].zones[dev.states['name']]
 
 			if ((newSetpoint >= float(dev.states["minHeatSetpoint"])) and (newSetpoint <= float(dev.states["maxHeatSetpoint"]))):
-				#url = self.TCCServer + 'WebAPI/emea/api/v1/temperatureZone/' + dev.address + '/heatSetpoint'
 				if bool(pluginAction.props.get("Timing")) == False:
 					Duration = int(pluginAction.props.get("Duration"))
 					if Duration < 10 or Duration > 1440:
@@ -747,15 +613,14 @@ class Honeywell(object):
 						t1 = (datetime.utcnow() + timedelta(minutes=Duration))
 						r1 = int(t1.strftime("%M"))
 						t2 = t1.replace(minute=r1-(r1%10))
-						#until = t2.strftime("%Y-%m-%dT%H:%M:00Z")
 						until = t2
 
-						postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
+						#postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'TemporaryOverride', 'TimeUntil':until}
 						zone.set_temperature(newSetpoint, until)
 
 						indigo.server.log("[%s]: Setting Heat Setpoint to: %s until: %s" % (dev.name, newSetpoint, until))
 				else:
-					postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
+					#postdata = {'HeatSetpointValue':newSetpoint, 'SetpointMode':'PermanentOverride', 'TimeUntil':None}
 					zone.set_temperature(newSetpoint)
 
 					indigo.server.log("[%s]: Setting Heat Setpoint to: %s" % (dev.name, newSetpoint))
@@ -766,9 +631,8 @@ class Honeywell(object):
 
 		elif action == "actionDHWMode":
 			setting = pluginAction.props.get("setting")
-			#url = self.TCCServer + 'WebAPI/emea/api/v1/domesticHotWater/' + dev.address + '/state'
 			if setting == 'FollowSchedule':
-				postdata = {'state':None, 'mode':'FollowSchedule', 'untilTime':None}
+				#postdata = {'state':None, 'mode':'FollowSchedule', 'untilTime':None}
 				client.set_dhw_auto()
 				indigo.server.log("[%s]: Setting Domestic Hot Water Mode to: %s" % (dev.name, setting))
 			# TODO I don't think a temporary overide without a state is required, may be removed
@@ -782,19 +646,17 @@ class Honeywell(object):
 					t1 = (datetime.utcnow() + timedelta(minutes=Duration))
 					r1 = int(t1.strftime("%M"))
 					t2 = t1.replace(minute=r1-(r1%10))
-					#until = t2.strftime("%Y-%m-%dT%H:%M:00Z")
 					until = t2
-					postdata = {'state':dev.states["zoneState"], 'mode':'TemporaryOverride', 'untilTime':until}
+					#postdata = {'state':dev.states["zoneState"], 'mode':'TemporaryOverride', 'untilTime':until}
 
 					indigo.server.log("[%s]: Setting Domestic Hot Water Mode to: %s until: %s" % (dev.name, setting, until))
 			elif setting == 'PermanentOverride':
-				postdata = {'state':dev.states["zoneState"], 'mode':'PermanentOverride', 'untilTime':None}
+				#postdata = {'state':dev.states["zoneState"], 'mode':'PermanentOverride', 'untilTime':None}
 				indigo.server.log("[%s]: Setting Domestic Hot Water Mode to: %s" % (dev.name, setting))
 
 
 		elif action == "actionDHWState":
 			setting = pluginAction.props.get("setting")
-			#url = self.TCCServer + 'WebAPI/emea/api/v1/domesticHotWater/' + dev.address + '/state'
 			if bool(pluginAction.props.get("Timing")) == False:
 				Duration = int(pluginAction.props.get("Duration"))
 				if Duration < 10 or Duration > 1440:
@@ -804,9 +666,8 @@ class Honeywell(object):
 					t1 = (datetime.utcnow() + timedelta(minutes=Duration))
 					r1 = int(t1.strftime("%M"))
 					t2 = t1.replace(minute=r1-(r1%10))
-					#until = t2.strftime("%Y-%m-%dT%H:%M:00Z")
 					until = t2
-					postdata = {'state':setting, 'mode':'TemporaryOverride', 'untilTime':until}
+					#postdata = {'state':setting, 'mode':'TemporaryOverride', 'untilTime':until}
 					if setting == 'On':
 						client.set_dhw_on(until)
 					else:
@@ -814,15 +675,12 @@ class Honeywell(object):
 
 					indigo.server.log("[%s]: Setting Domestic Hot Water Mode to: %s until: %s" % (dev.name, setting, until))
 			else:
-				postdata = {'state':setting, 'mode':'PermanentOverride', 'untilTime':None}
+				#postdata = {'state':setting, 'mode':'PermanentOverride', 'untilTime':None}
 				if setting == 'On':
 					client.set_dhw_on()
 				else:
 					client.set_dhw_off()
 				indigo.server.log("[%s]: Setting Domestic Hot Water Mode to: %s" % (dev.name, setting))
-			#response = requests.put(url, data=json.dumps(postdata), headers=headers)
-			#if response.status_code != 201:
-			#	self.plugin.errorLog("[%s]: Cannnot set setpoint Heat for: %s" % (time.asctime(), dev.name))
 
 		self.evohome_get_all(client)
 		return
@@ -943,13 +801,12 @@ class Honeywell(object):
 				client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'], access_token_expires=datetime.strptime(self.plugin.pluginPrefs['access_token_expires'],"%Y-%m-%d %H:%M:%S.%f"))
 		except Exception as error:
 				self.evohomeStatus = False
-				self.plugin.errorLog("[%s] Cannot read Evohome TCC data " % time.asctime())
+				self.plugin.errorLog("[%s] Cannot read Evohome data " % time.asctime())
 				self.plugin.debugLog(str(error))
 				return
-		self.plugin.debugLog("[%s] when token expires." % client.access_token_expires)
 
 		self.plugin.pluginPrefs['refresh_token']=client.refresh_token
 		self.plugin.pluginPrefs['access_token']=client.access_token
 		self.plugin.pluginPrefs['access_token_expires']=str(client.access_token_expires)
-		self.plugin.debugLog("[%s] Authenticated to Evohome API." % time.asctime())
+		self.plugin.debugLog("[%s] Authenticated to Evohome API (refresh call) with token expiring %s." % ( time.asctime(),client.access_token_expires))
 		return client
