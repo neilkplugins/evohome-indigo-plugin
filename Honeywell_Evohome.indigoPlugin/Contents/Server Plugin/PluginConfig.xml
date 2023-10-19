@@ -22,7 +22,6 @@
 	</Field>
 	<Field type="textfield" id="access_token_expires"  hidden="true" defaultValue="">
 	</Field>
-	<!-- Optionally a checkbox can also be used. -->
 
 	<Field id="simpleSeparator5" type="separator"/>
 

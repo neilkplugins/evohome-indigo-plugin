@@ -41,18 +41,9 @@ class Honeywell(object):
 		self.evohome_UserID = None
 		self.evohome_Password = None
 		self.evohomeStatus = False
-		self.evohome_timer_refresh = None
 		self.evohome_timer_full = None
-		self.evohome_timer_lasttry = None
 		self.evohome_token_refresh = None
-		#self.TCCServer = None
 		self.deviceList = []
-		#self.eventCurrentId = None
-		#self.eventLatestId = None
-		#self.errorCount = 0
-		#self.evohome_errorCount = 0
-		#self.myEvohomeTCC = None
-		#self.HQ = {}
 		self.interval = None
 		self.maxErrors = None
 
@@ -79,8 +70,7 @@ class Honeywell(object):
 			self.deviceList.remove(device.id)
 
 	def restartPlugin(self):
-		#TODO when you confirm the plugin ID, update this
-		HoneywellPlug = indigo.server.getPlugin("com.barn.indigoplugin.Honeywell2")
+		HoneywellPlug = indigo.server.getPlugin("com.barn.indigoplugin.Honeywell_Evohome")
 		HoneywellPlug.restart (waitUntilDone = True)
 		exit()
 
@@ -105,10 +95,8 @@ class Honeywell(object):
 		self.plugin.pluginPrefs['access_token_expires']=str(client.access_token_expires)
 		indigo.server.log("[%s] Authenticated to Evohome API (Initial Call)." % time.asctime())
 		self.evohomeStatus = True
-		self.evohome_timer_lasttry = time.time()
 
 		if self.evohomeStatus == True:
-			self.evohome_timer_refresh = time.time()
 			self.evohome_timer_full = time.time()
 			self.evohome_initDevice()
 			self.evohome_get_all(client)
@@ -136,15 +124,9 @@ class Honeywell(object):
 
 		self.updateStateOnServer (dev, "temperatureInput1", 0)
 		self.updateStateOnServer (dev, "humidityInput1", 0)
-		#self.updateStateOnServer (dev, "fanAllowedModes", "")
-		#self.updateStateOnServer (dev, "fanMode", "")
-		#self.updateStateOnServer (dev, "fanRunning", False)
-		#self.updateStateOnServer (dev, "indoorHumidityStatus", "")
 		self.updateStateOnServer (dev, "indoorTemperatureStatus", "")
 		self.updateStateOnServer (dev, "macID", "")
-		#self.updateStateOnServer (dev, "maxCoolSetpoint", "")
 		self.updateStateOnServer (dev, "maxHeatSetpoint", "")
-		#self.updateStateOnServer (dev, "minCoolSetpoint", "")
 		self.updateStateOnServer (dev, "minHeatSetpoint", "")
 		self.updateStateOnServer (dev, "name", "")
 		self.updateStateOnServer (dev, "nextTime", "")
@@ -152,7 +134,7 @@ class Honeywell(object):
 		self.updateStateOnServer (dev, "outdoorHumidityAvailable", False)
 		self.updateStateOnServer (dev, "outdoorHumidityStatus", "")
 		self.updateStateOnServer (dev, "scheduleCapable", False)
-		self.updateStateOnServer (dev, "scheduleCoolSp", 0)
+		#self.updateStateOnServer (dev, "scheduleCoolSp", 0)
 		self.updateStateOnServer (dev, "scheduleHeatSp", 0)
 		self.updateStateOnServer (dev, "setpointStatus", "")
 		self.updateStateOnServer (dev, "thermostatAllowedModes", "")
@@ -160,9 +142,6 @@ class Honeywell(object):
 		self.updateStateOnServer (dev, "thermostatModelType", "")
 		self.updateStateOnServer (dev, "thermostatVersion", "")
 		self.updateStateOnServer (dev, "lastUpdate", "")
-
-		#self.HQ[dev.id] = {'SetPoint':0, 'OperationMode':0, 'FanMode':0}
-
 
 
 	def evohome_initDevice(self):
@@ -217,35 +196,14 @@ class Honeywell(object):
 				self.plugin.errorLog("[%s] Missing evohome Zone: [%s] %s" % (time.asctime(), zone["zoneId"], zone["name"]))
 
 
-
-	def get_eventLatestId(self):
-		url = self.TCCServer + 'WebAPI/api/eventLatestId'
-		headers = {'content-type':'application/json', 'Authorization':'Bearer ' + self.myTCC.access_token}
-		response = requests.get(url, headers=headers)
-		if response.status_code == 200:
-			content = json.loads (response.content)
-			self.eventLatestId = content["id"]
-			return (True)
-		else:
-			self.plugin.errorLog ("[%s] Error: %s, Cannot get eventLatestId from Honeywell TCC Web API." % (time.asctime(), response.status_code))
-			return (False)
-
-
-
 	def evohome_get_all(self,content):
 		for dev in indigo.devices.iter("self.evohomeLocation"):
 			if dev.enabled:
-				#TODO check for error checking on failire to turn devices red
-				# if self.evohome_getDevice(dev) == False:
-				# 	self.plugin.errorLog ("[%s] Failed to retrieve thermostat status for: %s" % (time.asctime(), dev.name))
-				# 	dev.setErrorStateOnServer("error")
-				# else:
-				# 	self.evohome_errorCount = 0
+
 				self.evohome_updateDevice(dev,content)
 
 
 	def evohome_updateDevice(self, ldev,content):
-		#indigo.server.log("%s" % content)
 
 		#for gateway in content["gateways"]:
 		status=content.locations[0].status()
@@ -270,6 +228,7 @@ class Honeywell(object):
 					break
 			if found == False:
 				self.plugin.errorLog("[%s] Missing evohome Controller: [%s]" % (time.asctime(), temperatureControlSystem["systemId"]))
+				dev.setErrorStateOnServer("error")
 
 			if "dhw" in temperatureControlSystem:
 				found = False
@@ -305,6 +264,7 @@ class Honeywell(object):
 						break
 				if found == False:
 					self.plugin.errorLog("[%s] Missing evohome DHW: [%s]" % (time.asctime(), temperatureControlSystem["dhw"]["dhwId"]))
+					dev.setErrorStateOnServer("error")
 
 			for zone in temperatureControlSystem["zones"]:
 				found = False
@@ -339,10 +299,12 @@ class Honeywell(object):
 						break
 				if found == False:
 					self.plugin.errorLog("[%s] Missing evohome Zone: [%s] %s" % (time.asctime(), zone["zoneId"], zone["name"]))
+					dev.setErrorStateOnServer("error")
 
 
 	def de(self, dev, value):
 		self.plugin.errorLog ("[%s] No value found for device: %s, field: %s" % (time.asctime(), dev.name, value))
+		dev.setErrorStateOnServer("error")
 
 
 	######################################################################################
@@ -688,7 +650,6 @@ class Honeywell(object):
 
 	def dumpEvohomeTCC(self):
 
-		#client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'], refresh_token=self.plugin.pluginPrefs['refresh_token'], access_token=self.plugin.pluginPrefs['access_token'])
 		client = self.get_evohome_data()
 		try:
 			test = client.installation_info[0]['locationInfo']['name']
