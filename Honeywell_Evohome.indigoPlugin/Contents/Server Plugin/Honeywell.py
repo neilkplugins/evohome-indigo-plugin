@@ -740,7 +740,17 @@ class Honeywell(object):
 	# UI Validation
 	def validatePrefsConfigUi(self, valuesDict):
 		self.plugin.debugLog("Vaidating Plugin Configuration")
+		self.plugin.debugLog(valuesDict)
 		errorsDict = indigo.Dict()
+
+		try:
+			client=EvohomeClient(valuesDict['evohome_UserID'],valuesDict['evohome_Password'])
+		except Exception as error:
+				self.plugin.errorLog("[%s] Cannot read Evohome data using new password/user name details" % time.asctime())
+				self.plugin.debugLog(str(error))
+				errorsDict["evohome_UserID"] = "Check Evohome Username and Password"
+				errorsDict["evohome_Password"] = "Check Evohome Username and Password"
+				errorsDict["showAlertText"] = "Unable to connect to the Evohome API with these credentials"
 		if len(errorsDict) > 0:
 			self.plugin.errorLog("\t Validation Errors")
 			return (False, valuesDict, errorsDict)
