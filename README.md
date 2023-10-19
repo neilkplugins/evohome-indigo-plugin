@@ -1,5 +1,7 @@
 # evohome-indigo-plugin
- Python 3 version of indigo plugin
+ Python 3 version of indigo plugin to support Honeywell Evohome
+
+ 
  Documentation to follow but the process is add your evohome credentials to the plugin config and enable debugging (for now)
 
  Dump the device ids to the event window via the Log Evohome device ID's in the plugin menu
