@@ -29,8 +29,6 @@ class Honeywell(object):
 	def __init__(self, plugin):
 		self.plugin = plugin
 		self.needToGetPluginPrefs = True
-		#self.UIChanges = None
-		#self.WiFiStatus = False
 		self.timer_refresh = None 	# timestamp of last token refresh
 		self.timer_events = None 	# timestamp of last event poll
 		self.timer_full = None 		# timestamp of last device fetch
@@ -77,6 +75,7 @@ class Honeywell(object):
 	def start_evohome(self):
 
 		self.plugin.debugLog("Starting Evohome......")
+		self.evohomeStatus = True
 		try:
 			if self.plugin.pluginPrefs['refresh_token']=='':
 				client = EvohomeClient(self.plugin.pluginPrefs['evohome_UserID'], self.plugin.pluginPrefs['evohome_Password'],)
@@ -94,27 +93,31 @@ class Honeywell(object):
 		self.plugin.pluginPrefs['access_token']=client.access_token
 		self.plugin.pluginPrefs['access_token_expires']=str(client.access_token_expires)
 		indigo.server.log("[%s] Authenticated to Evohome API (Initial Call)." % time.asctime())
-		self.evohomeStatus = True
+		self.evohome_timer_full = time.time()
 
 		if self.evohomeStatus == True:
-			self.evohome_timer_full = time.time()
 			self.evohome_initDevice()
 			self.evohome_get_all(client)
 		else:
-			self.plugin.errorLog("[%s] Error: Cannot authenticate to Evohome API.  Retrying in 60..." % time.asctime())
+			self.plugin.errorLog("[%s] Error: Cannot authenticate to Evohome API.  Retrying in %s ..." % (time.asctime(), self.interval))
 
 
 	######################################################################################
 	# Concurrent Thread Start
 	def runConcurrentThread(self):
 		self.plugin.debugLog("Running Concurrent Thread")
+		self.evohome_timer_full = time.time()
 
 		while self.plugin.StopThread == False:
-			if self.evohomeStatus == True:
-				if (time.time() - self.evohome_timer_full) > int(self.interval):
-					content = self.get_evohome_data()
+
+			#if self.evohomeStatus == True:
+			if (time.time() - self.evohome_timer_full) > int(self.interval):
+				content = self.get_evohome_data()
+				if isinstance(content, EvohomeClient):
 					self.evohome_get_all(content)
-					self.evohome_timer_full = time.time()
+				else:
+					self.plugin.errorLog("[%s] Failed to retrieve Evohome data. Aborting update and trying again in %s seconds" % (time.asctime(), self.interval))
+				self.evohome_timer_full = time.time()
 
 
 			self.plugin.sleep(15)
@@ -780,4 +783,6 @@ class Honeywell(object):
 		self.plugin.pluginPrefs['access_token']=client.access_token
 		self.plugin.pluginPrefs['access_token_expires']=str(client.access_token_expires)
 		self.plugin.debugLog("[%s] Authenticated to Evohome API (refresh call) with token expiring %s." % ( time.asctime(),client.access_token_expires))
+		self.evohomeStatus = True
+
 		return client
