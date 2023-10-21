@@ -354,6 +354,7 @@ class Honeywell(object):
 	def actionControlThermostat(self, action, dev):
 
 		if self.evohomeStatus == False:
+			self.plugin.errorLog("[%s]: Error performing %s: %s" % (time.asctime(),action.thermostatAction,dev.name ))
 			return
 		client=self.get_evohome_data()
 
@@ -424,6 +425,9 @@ class Honeywell(object):
 
 	def evohome_actionCustomControl(self, pluginAction, action):
 		if self.evohomeStatus == False:
+			dev= indigo.devices[pluginAction.deviceId]
+			self.plugin.errorLog("[%s]: Error performing %s: %s" % (time.asctime(),pluginAction.description, dev.name))
+
 			return
 		client=self.get_evohome_data()
 		dev = indigo.devices[pluginAction.deviceId]
