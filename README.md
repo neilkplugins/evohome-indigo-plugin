@@ -8,4 +8,4 @@ If your Evhome Credentials work at https://international.mytotalconnectcomfort.c
  
  Documentation is [here](https://github.com/neilkplugins/evohome-indigo-plugin/wiki)
  
- Any questions, requests or bugs then please report in the plugin [forum]https://forums.indigodomo.com/viewforum.php?f=401
+ Any questions, requests or bugs then please report in the plugin [forum](https://forums.indigodomo.com/viewforum.php?f=401)
