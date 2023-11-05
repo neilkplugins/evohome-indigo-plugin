@@ -1,8 +1,12 @@
 # evohome-indigo-plugin
- Python 3 version of indigo plugin to support Honeywell Evohome
+ Python 3 version of indigo plugin to support Honeywell Evohome to work with Indigo version 2023.1.0 onwards that requires all plugns to run in Python 3
 
+This plugin was derived from the previous Honeywell plugin, and is a direct replacement functionally for that for european Evohome users. It utilises the Evohome python client
+available https://github.com/watchforstock/evohome-client which only supports the European API calls.
+
+If your Evhome Credentials work at https://international.mytotalconnectcomfort.com/Account/Login then you should be able to use the plugin. This will not work with the Wifi Thermostat or the Redlink Gateways used in the US.
  
- Documentation to follow
+ Documentation is here
  
  But the process is add your evohome credentials to the plugin config and enable debugging (for now)
  Please do take care entering your credentials, as you can find the retry limit exceeded (each time to hit save on the config dialog it will make a logon attempt)
