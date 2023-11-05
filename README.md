@@ -6,6 +6,8 @@ available https://github.com/watchforstock/evohome-client which only supports th
 
 Thanks to Nick for the work on the former plugin, that inspired this new plugin.
 
+Note: This version does not support multiple locations (please get in touch if you reqiure this and I will aim to add support but will need your assistance)
+
 If your Evohome Credentials work at https://international.mytotalconnectcomfort.com/Account/Login then you should be able to use the plugin. This will not work with the Wifi Thermostat or the Redlink Gateways used in the US.
  
  Documentation is [here](https://github.com/neilkplugins/evohome-indigo-plugin/wiki)
