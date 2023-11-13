@@ -210,12 +210,12 @@ class Honeywell(object):
 
 		#for gateway in content["gateways"]:
 		status=content.locations[0].status()
-
 		for temperatureControlSystem in status['gateways'][0]["temperatureControlSystems"]:
 			found = False
 			for dev in indigo.devices.iter("self.evohomeController"):
 				if dev.address == temperatureControlSystem["systemId"]:
 					found = True
+					dev.setErrorStateOnServer(None)
 					try: self.updateStateOnServer(dev, "activeFaults", str(temperatureControlSystem["activeFaults"]))
 					except: self.updateStateOnServer(dev, "activeFaults", "")
 					try: self.updateStateOnServer(dev, "systemMode", temperatureControlSystem["systemModeStatus"]["mode"])
@@ -231,13 +231,15 @@ class Honeywell(object):
 					break
 			if found == False:
 				self.plugin.errorLog("[%s] Missing evohome Controller: [%s]" % (time.asctime(), temperatureControlSystem["systemId"]))
-				dev.setErrorStateOnServer("error")
+				dev.setErrorStateOnServer("controller error")
 
 			if "dhw" in temperatureControlSystem:
 				found = False
 				for dev in indigo.devices.iter("self.evohomeDHW"):
 					if dev.address == temperatureControlSystem["dhw"]["dhwId"]:
 						found = True
+						dev.setErrorStateOnServer(None)
+
 						try: self.updateStateOnServer(dev, "activeFaults", str(temperatureControlSystem["dhw"]["activeFaults"]))
 						except: self.updateStateOnServer(dev, "activeFaults", "")
 						try:
@@ -261,19 +263,21 @@ class Honeywell(object):
 								else:
 									self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)
 							else:
-								dev.setErrorStateOnServer("error")
+								dev.setErrorStateOnServer("DHW error")
 						except:
 							self.de (dev, "temperatureStatus")
 						break
 				if found == False:
 					self.plugin.errorLog("[%s] Missing evohome DHW: [%s]" % (time.asctime(), temperatureControlSystem["dhw"]["dhwId"]))
-					dev.setErrorStateOnServer("error")
+					dev.setErrorStateOnServer("DHW error")
 
 			for zone in temperatureControlSystem["zones"]:
 				found = False
 				for dev in indigo.devices.iter("self.evohomeZone"):
 					if dev.address == zone["zoneId"]:
 						found = True
+						dev.setErrorStateOnServer(None)
+
 						try: self.updateStateOnServer(dev, "activeFaults", str(zone["activeFaults"]))
 						except: self.updateStateOnServer(dev, "activeFaults", "")
 						try:
@@ -296,18 +300,18 @@ class Honeywell(object):
 								else:
 									self.updateStateOnServer(dev, "hvacHeaterIsOn", 0)
 							else:
-								dev.setErrorStateOnServer("error")
+								dev.setErrorStateOnServer("zone error")
 						except:
 							self.de (dev, "temperatureStatus")
 						break
 				if found == False:
 					self.plugin.errorLog("[%s] Missing evohome Zone: [%s] %s" % (time.asctime(), zone["zoneId"], zone["name"]))
-					dev.setErrorStateOnServer("error")
+					dev.setErrorStateOnServer("zone error")
 
 
 	def de(self, dev, value):
 		self.plugin.errorLog ("[%s] No value found for device: %s, field: %s" % (time.asctime(), dev.name, value))
-		dev.setErrorStateOnServer("error")
+		dev.setErrorStateOnServer("missing error")
 
 
 	######################################################################################
